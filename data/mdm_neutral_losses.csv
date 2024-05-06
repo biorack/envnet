@@ -1,0 +1,55 @@
+﻿difference,mass,ref_from_simon_etal_2022,explanation
+C-1H-2O,1.979265,"[1, 2]",Acetic acid/ -H2O and -CO2
+H2,2.01565,[1 - 5],(De-)hydrogenation
+C,12,[1 - 3],Glyoxylic acid/ -H2O and -CO2
+OH-2,13.979265,[2],O/H2 exchange
+CH2,14.01565,[1 - 5],(De-)methylation
+O,15.994915,[1 - 5],(De-)hydroxylation/ Oxygen
+CH4,16.0313,[6],Methane
+H2O,18.010565,"[3, 6 - 8, a.o.]",Water
+CH-2O,25.979265,[1],C=O insertion
+CHN,27.010899,[1],Formimino transfer
+CO,27.994915,[1 - 4],Formyl transfer/ Carbon Monooxide
+C2H4,28.0313,[1 - 3],β-oxidation/ fatty acid synthesis
+H-1NO,28.990164,[1],Nitrosylation
+CHO,29.00274,[3],Formyl-group related
+CH2O,30.010565,"[1, 3, 4]",Hydroxymethyl transfer
+S,31.972072,[9],Sulfur
+CH4O,32.026215,"[7, 8]",Methanol
+2x H2O,36.02113,[7],Combination
+C2H2O,42.010565,"[1, 4]",Hydroxypyruvic acid/ -H2O
+C3H6,42.04695,[3],Repeated (de-)methylation
+CHNO,43.005814,[1],Carbamoyl- or isocyanide transfer
+CO2,43.98983,"[3, 6 - 8, a.o.]",Carbon dioxide/ Carboxyl group
+C2H4O,44.026215,"[2, 3]",Acetaldehyde analogon
+C3H2O,54.010565,[4],Propynal analogon
+C2O2,55.98983,[1],Glyoxylic acid/ -H2O
+C4H8,56.0626,[3],Repeated (de-)methylation
+CO2 + H2O,62.000395,[6 - 8],Combination
+HNO3,62.995617,[3],Nitrate
+SO2,63.961902,[9],Sulfur dioxide
+C4H4O,68.026215,"[2, 8]",Vinyl Ketene
+C3H2O2,70.00548,[4],Propiolic acid analogon
+CO2 + CO,71.984745,[6],Combination
+C2H3NO2,73.016379,[1],Tryptophanase
+CO2 + CH4O,76.016045,[7],Combination
+SO3,79.956817,[9],Sulfur trioxide
+H2SO3,81.972467,[9],Sulfurous acid
+2x CO2,87.97966,"[3, 6 - 8]",Combination
+2x CO2 + H2O,105.990225,[6 - 8],Combination
+CO2 + SO2,107.951732,[9],Combination
+2x CO2 + CO,115.974575,[6],Combination
+2x CO2 + CH4O,120.005875,[7],Combination
+CO2 + SO3,123.946647,[9],Combination
+2x CO2 + 2 H2O,124.00079,[6],Combination
+3x CO2,131.96949,"[6, 7]",Combination
+2x CO2 + H2O + CO,133.98514,[6],Combination
+3x CO2 + CH4,148.00079,[6],Combination
+3x CO2 + H2O,149.980055,"[6, 7]",Combination
+C7H6O4,154.02661,[4],Dihydroxyl-benzoic acid analogon
+3x CO2 + CH4O,163.995705,[7],Combination
+3x CO2 + 2 H2O,167.99062,[6],Combination
+4x CO2,175.95932,[6],Combination
+3x CO2 + H2O + CO,177.97497,[6],Combination
+4x CO2 + CH4,191.99062,[6],Combination
+4x CO2 + H2O,193.969885,[6],Combination
