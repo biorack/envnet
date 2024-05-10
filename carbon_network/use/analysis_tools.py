@@ -20,9 +20,10 @@ if module_path not in sys.path:
 from build.preprocess import run_workflow
 
 
+
 def graph_to_df() -> pd.DataFrame:
     
-    G = nx.read_graphml('../build/CarbonNetwork.graphml')
+    G = nx.read_graphml('/global/cfs/cdirs/metatlas/projects/carbon_network/CarbonNetwork.graphml')
 
     node_data = dict(G.nodes(data=True))
     node_data = pd.DataFrame(node_data).T
@@ -34,8 +35,8 @@ def graph_to_df() -> pd.DataFrame:
 
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     
-    original_spectra = open_msms_file('../../data/original_spectra_massive.mgf')
-    nl_spectra = open_msms_file('../../data/nl_spectra_massive.mgf')
+    original_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/original_spectra.mgf')
+    nl_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/nl_spectra.mgf')
     
     if 'orignal_id' in original_spectra:
         original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
@@ -102,7 +103,7 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
 def get_sample_ms2_data(sample_files: List[str]) -> pd.DataFrame:
     """Collect all MS2 data from experimental sample data and calculate ."""
     
-    delta_mzs = pd.read_csv('../../data/mdm_neutral_losses.csv')
+    delta_mzs = pd.read_csv('/global/cfs/cdirs/metatlas/projects/carbon_network/mdm_neutral_losses.csv')
     
     ms2_data = []
     
