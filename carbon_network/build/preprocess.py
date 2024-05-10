@@ -18,20 +18,22 @@ import sys
 from collections import defaultdict
 
 
-sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
+sys.path.insert(0,'/global/homes/t/tharwood/repos/blink')
 import blink
+
                             
 def run_workflow(f,
-                      deltas,
-                      do_buddy=True,
-                      mz_tol=0.002,
-                      similarity_cutoff=0.8,
-                      isolation_tol=0.5,
-                      min_intensity_ratio=2,
-                      fraction_required=3,
-                      min_rt=1,
-                      max_rt=7,
-                      my_polarity='negative'):
+                 deltas,
+                 do_buddy=True,
+                 elminate_duplicate_spectra=True,
+                 mz_tol=0.002,
+                 similarity_cutoff=0.8,
+                 isolation_tol=0.5,
+                 min_intensity_ratio=2,
+                 fraction_required=3,
+                 min_rt=1,
+                 max_rt=7,
+                 my_polarity='negative'):
     
     # this will calculate the neutral loss spectra and the recalculated precursor m/z
 
@@ -40,7 +42,9 @@ def run_workflow(f,
         print('There is not any data in the dataframe')
         return None
     df.reset_index(inplace=True,drop=True)
-    df = eliminate_duplicate_spectra(df,deltas,mz_tol=mz_tol,similarity_cutoff=similarity_cutoff,min_intensity_ratio=min_intensity_ratio)
+    
+    if elminate_duplicate_spectra:
+        df = eliminate_duplicate_spectra(df,deltas,mz_tol=mz_tol,similarity_cutoff=similarity_cutoff,min_intensity_ratio=min_intensity_ratio)
 
     df.reset_index(inplace=True,drop=True)
     df.index.name = 'temp_index'
@@ -66,28 +70,28 @@ def run_workflow(f,
     df['mdm_i_vals'] = df['nl_spectrum'].apply(lambda x: x[1].astype(float))
     
     df['temp_spectrum'] = df.apply(lambda x: np.vstack([x['mdm_mz_vals'],x['mdm_i_vals']]),axis=1)
-
-    result,msb_engine = run_buddy(df,ionization_mode=my_polarity,spectrum_key='temp_spectrum')
-
-    result.rename(columns={'adduct':'assumed_adduct','formula_rank_1':'predicted_formula'},inplace=True)
-    cols = [c for c in result.columns if 'rank_' in c]
-    result.drop(columns=cols,inplace=True)
-
-    df = pd.merge(df,result.drop(columns=['mz','rt']),left_index=True,right_on='identifier',how='inner')
-    # formula_props = get_formula_props(df,formula_key='predicted_formula')
-    # df = pd.merge(df,formula_props,left_on='predicted_formula',right_on='formula',how='left')
-    df.drop(columns=['identifier'],inplace=True)
-
-
+    
     cols = ['temp_index', 'count', 'nl_spectrum',
         'sum_frag_intensity', 'max_frag_intensity', 'obs', 'original_spectrum',
         'basename', 'temp_spectrum',
-        'coisolated_precursor_mz_list', 'assumed_adduct', 'buddy_spectrum']
+        'coisolated_precursor_mz_list']
+
+    if do_buddy:
+        result,msb_engine = run_buddy(df,ionization_mode=my_polarity,spectrum_key='temp_spectrum')
+
+        result.rename(columns={'adduct':'assumed_adduct','formula_rank_1':'predicted_formula'},inplace=True)
+        cols = [c for c in result.columns if 'rank_' in c]
+        result.drop(columns=cols,inplace=True)
+
+        df = pd.merge(df,result.drop(columns=['mz','rt']),left_index=True,right_on='identifier',how='inner')
+        # formula_props = get_formula_props(df,formula_key='predicted_formula')
+        # df = pd.merge(df,formula_props,left_on='predicted_formula',right_on='formula',how='left')
+        df.drop(columns=['identifier'],inplace=True)
+        
+        cols += ['assumed_adduct', 'buddy_spectrum']
+
     df.drop(columns=cols,inplace=True)
-
-
     df.reset_index(inplace=True,drop=True)
-
 
     return df
 
