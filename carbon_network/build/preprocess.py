@@ -91,10 +91,7 @@ def run_workflow(f,
         cols += ['assumed_adduct', 'buddy_spectrum']
 
     df.drop(columns=cols,inplace=True)
-
-
     df.reset_index(inplace=True,drop=True)
-
 
     return df
 
