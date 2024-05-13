@@ -10,9 +10,11 @@ from tqdm.notebook import tqdm
 
 # replace with submodules
 import sys
-sys.path.insert(0,'/global/homes/t/tharwood/repos/blink')
+sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
 from blink import open_msms_file
-sys.path.insert(0,'/global/homes/t/tharwood/repos/metatlas')
+import blink
+
+sys.path.insert(0,'/global/homes/b/bpb/repos/metatlas')
 from metatlas.io import feature_tools as ft
 
 module_path = os.path.abspath(os.path.join('..'))
@@ -20,7 +22,6 @@ if module_path not in sys.path:
     sys.path.append(module_path)
     
 from build.preprocess import run_workflow
-
 
 
 def graph_to_df() -> pd.DataFrame:
@@ -83,19 +84,15 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     return node_atlas
 
 
-def get_ms1_rawdata():
-    ms1_data = at.get_sample_ms1_data(node_atlas, files, mz_ppm_tolerance)
-    ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
-    return ms1_data
 
-def get_best_ms1_rawdata(ms1_data):
+def get_best_ms1_rawdata(ms1_data,node_data):
     max_ms1_data = ms1_data.sort_values('peak_height', ascending=False).drop_duplicates(subset='label').rename(columns={'label': 'node_id'})
     max_ms1_data = pd.merge(max_ms1_data.rename(columns={'label': 'node_id'}), node_data[['node_id', 'precursor_mz']], on='node_id')
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
     return max_ms1_data
 
 
-def do_blink(discretized_spectra,exp_df,ref_df):
+def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_min=3,mz_ppm_tolerance=5):
     scores = blink.score_sparse_spectra(discretized_spectra)
     # m = blink.reformat_score_matrix(S12)
     scores = blink.filter_hits(scores,min_score=msms_score_min,min_matches=msms_matches_min)
@@ -109,7 +106,7 @@ def do_blink(discretized_spectra,exp_df,ref_df):
     scores = pd.merge(scores,exp_df[['precursor_mz']].add_suffix('_exp'),left_on='query',right_index=True,how='left')
     scores = pd.merge(scores,ref_df[['precursor_mz']].add_suffix('_ref'),left_on='ref',right_index=True,how='left')
     scores['mz_diff'] = abs(scores['precursor_mz_exp'] - scores['precursor_mz_ref']) / scores['precursor_mz_ref'] * 1e6
-    scores = scores[scores['mz_diff']<5]
+    scores = scores[scores['mz_diff']<mz_ppm_tolerance]
     scores.set_index(cols,inplace=True,drop=True)
 
     return scores
@@ -161,17 +158,24 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
     for f in sample_files:
+        node_atlas.sort_values('mz',inplace=True)
+        node_atlas['ppm_tolerance'] = mz_ppm_tolerance
+        node_atlas['extra_time'] = 0
+        node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
+                                             stepsize=mz_ppm_tolerance,
+                                             do_ppm=True)
         d = ft.get_atlas_data_from_file(f,node_atlas,desired_key='ms1_neg')
         d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
         # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
         d['lcmsrun_observed'] = f
         ms1_data.append(d)
     ms1_data = pd.concat(ms1_data)
-
+    ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
+    ms1_data.reset_index(inplace=True,drop=True)
     return ms1_data
 
 
-def get_sample_ms2_data(sample_files: List[str]) -> pd.DataFrame:
+def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance,frag_mz_tolerance) -> pd.DataFrame:
     """Collect all MS2 data from experimental sample data and calculate ."""
     
     delta_mzs = pd.read_csv('/global/cfs/cdirs/metatlas/projects/carbon_network/mdm_neutral_losses.csv')
@@ -188,5 +192,33 @@ def get_sample_ms2_data(sample_files: List[str]) -> pd.DataFrame:
         ms2_data.append(data)
         
     ms2_data = pd.concat(ms2_data).reset_index(drop=True)
-        
-    return ms2_data
+    ms2_data = remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=mz_ppm_tolerance)
+    ms2_data['nl_spectrum'] = ms2_data.apply(lambda x: np.array([x.mdm_mz_vals, x.mdm_i_vals]), axis=1)
+    ms2_data['original_spectrum'] = ms2_data.apply(lambda x: np.array([x.original_mz_vals, x.original_i_vals]), axis=1)
+
+    nl_data_spectra = ms2_data['nl_spectrum'].tolist()
+    nl_ref_spectra = merged_node_data['spectrum_nl_spectra'].tolist()
+
+    or_data_spectra = ms2_data['original_spectrum']
+    or_ref_spectra = merged_node_data['spectrum_original_spectra'].tolist()
+
+    data_pmzs = ms2_data['precursor_mz'].tolist()
+    ref_pmzs = merged_node_data['precursor_mz'].tolist()
+
+
+    discretized_spectra = blink.discretize_spectra(nl_data_spectra, nl_ref_spectra, data_pmzs,  ref_pmzs,
+                                            bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
+    nl_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
+
+    discretized_spectra = blink.discretize_spectra(or_data_spectra, or_ref_spectra, data_pmzs,  ref_pmzs,
+                                            bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
+    or_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
+
+    ms2_scores = merge_or_nl_blink(nl_blink,or_blink)
+    ms2_scores = pd.merge(ms2_scores,merged_node_data[['node_id']],left_on='ref',right_index=True,how='left')
+    ms2_scores = pd.merge(ms2_scores,ms2_data[['filename']],left_on='query',right_index=True,how='left')
+    ms2_scores.rename(columns={'filename':'lcmsrun_observed'},inplace=True)
+    ms2_scores = ms2_scores.astype({'node_id': 'string', 'lcmsrun_observed': 'string'})
+
+
+    return ms2_scores
