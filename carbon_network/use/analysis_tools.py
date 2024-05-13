@@ -55,16 +55,16 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     return merged_node_data
 
 
-def get_files_df(exp_dir: str) -> pd.DataFrame:
+def get_files_df(exp_dir: str,parse_filename=False) -> pd.DataFrame:
     
     files = glob.glob(os.path.join(exp_dir,'*NEG*.h5'))
     files = [f for f in files if not 'exctrl' in f.lower()]
     files = [f for f in files if not 'qc' in f.lower()]
     
     files = pd.DataFrame(files, columns=['filename'])
-
-    files['experiment'] = files['filename'].apply(lambda x: '_'.join(x.split('/')[-1].split('_')[4:6]))
-    files['sampletype'] = files['filename'].apply(lambda x: x.split('/')[-1].split('_')[12])
+    if parse_filename==True:
+        files['experiment'] = files['filename'].apply(lambda x: '_'.join(x.split('/')[-1].split('_')[4:6]))
+        files['sampletype'] = files['filename'].apply(lambda x: x.split('/')[-1].split('_')[12])
     
     return files
 
@@ -81,20 +81,29 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     return node_atlas
 
 
+def calculate_ms1_summary(row):
+    """
+    Calculate summary properties for features from data
+    """
+    d = {}
+    #Before doing this make sure "in_feature"==True has already occured
+    d['num_datapoints'] = row['i'].count()
+    d['peak_area'] = row['i'].sum()
+    idx = row['i'].idxmax()
+    d['peak_height'] = row.loc[idx,'i']
+    d['mz_centroid'] = sum(row['i']*row['mz'])/d['peak_area']
+    d['rt_peak'] = row.loc[idx,'rt']
+    return pd.Series(d)
+
 def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Collect MS1 data from experimental sample data using node attributes."""
-
-    experiment_input = ft.setup_file_slicing_parameters(node_atlas, sample_files, base_dir=os.getcwd(), ppm_tolerance=mz_ppm_tolerance, polarity='negative')
-
     ms1_data = []
-
-    for file_input in tqdm(experiment_input, unit="file"):
-
-        data = ft.get_data(file_input, save_file=False, return_data=True, ms1_feature_filter=False)
-        data['ms1_summary']['lcmsrun_observed'] = file_input['lcmsrun']
-
-        ms1_data.append(data['ms1_summary'])
-
+    for f in sample_files:
+        d = ft.get_atlas_data_from_file(f,node_atlas,desired_key='ms1_neg')
+        d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
+        # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
+        d['lcmsrun_observed'] = f
+        ms1_data.append(d)
     ms1_data = pd.concat(ms1_data)
 
     return ms1_data
