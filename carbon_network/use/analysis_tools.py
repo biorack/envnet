@@ -103,6 +103,20 @@ def do_blink(discretized_spectra,exp_df,ref_df):
 
     return scores
 
+def merge_or_nl_blink(nl_blink,or_blink):
+    t = pd.merge(nl_blink.add_suffix('_nl'),or_blink.add_suffix('_or'),left_index=True,right_index=True,how='outer')
+    t['score'] = t[['score_nl','score_or']].apply(lambda x: np.nanmax(x),axis=1)
+    t['best_match_method'] = t[['score_nl','score_or']].idxmax(axis=1)
+    idx = t['best_match_method']=='score_or'
+    t.loc[idx,'matches'] = t.loc[idx,'matches_or']
+    idx = t['best_match_method']=='score_nl'
+    t.loc[idx,'matches'] = t.loc[idx,'matches_nl']
+    cols = ['score','matches','best_match_method']
+    t = t[cols]
+    t.reset_index(inplace=True,drop=False)
+    return t
+    
+
 def remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=5):
 
 
