@@ -91,6 +91,12 @@ def get_best_ms1_rawdata(ms1_data,node_data):
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
     return max_ms1_data
 
+def get_best_ms2_rawdata(ms2_data):
+    max_ms2 = ms2_data.sort_values('score',ascending=False).drop_duplicates('node_id')
+    max_ms2.drop(columns=['query','ref'],inplace=True)
+    max_ms2.reset_index(inplace=True,drop=True)
+    return max_ms2
+
 
 def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_min=3,mz_ppm_tolerance=5):
     scores = blink.score_sparse_spectra(discretized_spectra)
