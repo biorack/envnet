@@ -83,6 +83,17 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     return node_atlas
 
 
+def get_ms1_rawdata():
+    ms1_data = at.get_sample_ms1_data(node_atlas, files, mz_ppm_tolerance)
+    ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
+    return ms1_data
+
+def get_best_ms1_rawdata(ms1_data):
+    max_ms1_data = ms1_data.sort_values('peak_height', ascending=False).drop_duplicates(subset='label').rename(columns={'label': 'node_id'})
+    max_ms1_data = pd.merge(max_ms1_data.rename(columns={'label': 'node_id'}), node_data[['node_id', 'precursor_mz']], on='node_id')
+    max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
+    return max_ms1_data
+
 
 def do_blink(discretized_spectra,exp_df,ref_df):
     scores = blink.score_sparse_spectra(discretized_spectra)
