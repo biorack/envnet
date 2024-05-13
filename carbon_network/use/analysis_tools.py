@@ -2,6 +2,8 @@ import networkx as nx
 import pandas as pd
 import os
 import glob
+from scipy import interpolate
+import numpy as np
 from typing import List, Tuple
 
 from tqdm.notebook import tqdm
@@ -80,8 +82,29 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     
     return node_atlas
 
+
+
+def do_blink(discretized_spectra,exp_df,ref_df):
+    scores = blink.score_sparse_spectra(discretized_spectra)
+    # m = blink.reformat_score_matrix(S12)
+    scores = blink.filter_hits(scores,min_score=msms_score_min,min_matches=msms_matches_min)
+    scores = blink.reformat_score_matrix(scores)
+    scores = blink.make_output_df(scores)
+    for c in scores.columns:
+        scores[c] = scores[c].sparse.to_dense()
+    cols = ['query','ref']
+    for c in cols:
+        scores[c] = scores[c].astype(int)
+    scores = pd.merge(scores,exp_df[['precursor_mz']].add_suffix('_exp'),left_on='query',right_index=True,how='left')
+    scores = pd.merge(scores,ref_df[['precursor_mz']].add_suffix('_ref'),left_on='ref',right_index=True,how='left')
+    scores['mz_diff'] = abs(scores['precursor_mz_exp'] - scores['precursor_mz_ref']) / scores['precursor_mz_ref'] * 1e6
+    scores = scores[scores['mz_diff']<5]
+    scores.set_index(cols,inplace=True,drop=True)
+
+    return scores
+
 def remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=5):
-    from scipy import interpolate
+
 
     ms1_mz = merged_node_data['precursor_mz'].sort_values().values
     ms2_data = ms2_data[ms2_data['precursor_mz']>ms1_mz.min()]
