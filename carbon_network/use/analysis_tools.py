@@ -80,6 +80,20 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     
     return node_atlas
 
+def remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=5):
+    from scipy import interpolate
+
+    ms1_mz = merged_node_data['precursor_mz'].sort_values().values
+    ms2_data = ms2_data[ms2_data['precursor_mz']>ms1_mz.min()]
+    ms2_data = ms2_data[ms2_data['precursor_mz']<ms1_mz.max()]
+    f = interpolate.interp1d(ms1_mz,np.arange(ms1_mz.size),kind='nearest',bounds_error=False,fill_value='extrapolate') #get indices of all mz values in the atlas
+    idx = f(ms2_data['precursor_mz'].values)   # iterpolate to find the nearest mz in the data for each mz in an atlas
+    idx = idx.astype(int)
+    ms2_data['nearest_precursor'] = ms1_mz[idx]
+    ms2_data['mz_diff'] = abs(ms2_data['nearest_precursor']-ms2_data['precursor_mz']) / ms2_data['precursor_mz'] * 1e6
+    ms2_data = ms2_data[ms2_data['mz_diff']<ppm_filter]
+    ms2_data.reset_index(inplace=True,drop=True)
+    return ms2_data
 
 def calculate_ms1_summary(row):
     """
