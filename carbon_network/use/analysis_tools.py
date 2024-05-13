@@ -86,8 +86,11 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
 
 
 def get_best_ms1_rawdata(ms1_data,node_data):
-    max_ms1_data = ms1_data.sort_values('peak_height', ascending=False).drop_duplicates(subset='label').rename(columns={'label': 'node_id'})
-    max_ms1_data = pd.merge(max_ms1_data.rename(columns={'label': 'node_id'}), node_data[['node_id', 'precursor_mz']], on='node_id')
+    max_ms1_data = ms1_data.copy()
+    max_ms1_data.sort_values('peak_height', ascending=False,inplace=True)
+    max_ms1_data.drop_duplicates(subset='label',inplace=True)
+    max_ms1_data.rename(columns={'label': 'node_id'},inplace=True)
+    max_ms1_data = pd.merge(max_ms1_data, node_data[['node_id', 'precursor_mz']], on='node_id',how='left')
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
     return max_ms1_data
 
@@ -97,6 +100,16 @@ def get_best_ms2_rawdata(ms2_data):
     max_ms2.reset_index(inplace=True,drop=True)
     return max_ms2
 
+def get_best_ms1_ms2_combined(max_ms1_data,max_ms2_data):
+    cols = ['node_id','score','matches','lcmsrun_observed']
+    out = pd.merge(max_ms1_data,
+    max_ms2_data[cols].add_prefix('ms2_'),
+    left_on='node_id',
+    right_on='ms2_node_id',
+    how='outer')
+    out.sort_values('ms2_score',ascending=False,inplace=True)
+    out.reset_index(inplace=True,drop=True)
+    return out
 
 def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_min=3,mz_ppm_tolerance=5):
     scores = blink.score_sparse_spectra(discretized_spectra)
@@ -160,7 +173,7 @@ def calculate_ms1_summary(row):
     d['rt_peak'] = row.loc[idx,'rt']
     return pd.Series(d)
 
-def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min,num_datapoints_min):
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
     for f in sample_files:
@@ -176,7 +189,9 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
         d['lcmsrun_observed'] = f
         ms1_data.append(d)
     ms1_data = pd.concat(ms1_data)
-    ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
+    ms1_data = ms1_data[ms1_data['peak_height']>peak_height_min]
+    ms1_data = ms1_data[ms1_data['num_datapoints']>num_datapoints_min]
+    # ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
     ms1_data.reset_index(inplace=True,drop=True)
     return ms1_data
 
