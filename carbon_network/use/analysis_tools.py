@@ -17,7 +17,9 @@ import blink
 sys.path.insert(0,'/global/homes/b/bpb/repos/metatlas')
 from metatlas.io import feature_tools as ft
 
-module_path = os.path.abspath(os.path.join('..'))
+
+module_path = os.path.abspath(os.path.join('/global/homes/b/bpb/repos/carbon_network/carbon_network/'))
+
 if module_path not in sys.path:
     sys.path.append(module_path)
     
@@ -176,17 +178,18 @@ def calculate_ms1_summary(row):
 def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min,num_datapoints_min):
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
-    for f in sample_files:
+    for file in tqdm(sample_files, unit='file'):
+    # for f in sample_files:
         node_atlas.sort_values('mz',inplace=True)
         node_atlas['ppm_tolerance'] = mz_ppm_tolerance
         node_atlas['extra_time'] = 0
         node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
                                              stepsize=mz_ppm_tolerance,
                                              do_ppm=True)
-        d = ft.get_atlas_data_from_file(f,node_atlas,desired_key='ms1_neg')
+        d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
         d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
         # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
-        d['lcmsrun_observed'] = f
+        d['lcmsrun_observed'] = file
         ms1_data.append(d)
     ms1_data = pd.concat(ms1_data)
     ms1_data = ms1_data[ms1_data['peak_height']>peak_height_min]
