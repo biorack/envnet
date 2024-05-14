@@ -26,6 +26,54 @@ if module_path not in sys.path:
 from build.preprocess import run_workflow
 
 
+from scipy.stats import ttest_ind
+
+
+
+def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
+    output = node_data.copy()
+    output.set_index('node_id',inplace=True)
+    output = output.join(best_hits.set_index('node_id'),rsuffix='_best_hit',how='left')
+    output = output.join(stats_df,rsuffix='_stats',how='left')
+    output.to_csv(filename)
+    return output
+
+
+def do_basic_stats(ms1_data,files_data):
+
+    if 'sample_category' not in files_data.columns:
+        return None
+    # merge in sample category
+    cols = ['filename','sample_category']
+    df = pd.merge(ms1_data,files_data[cols],left_on='lcmsrun_observed',right_on='filename',how='inner')
+    df = df[pd.notna(df['sample_category'])]
+    df.drop(columns=['filename'],inplace=True)
+
+    
+    # calcualte group values
+    df_agg = df.groupby(['node_id','sample_category'])['peak_height'].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
+    df_agg.columns = ['node_id','sample_category', 'mean', 'median', 'std_dev', 'standard_error']
+    df_agg = pd.pivot_table(df_agg,index='node_id',values=['mean','median','std_dev','standard_error'],columns=['sample_category'])
+    df_agg.columns = df_agg.columns.map('-'.join)
+
+    # pivot for easy ttest
+    d_sample = df.pivot_table(columns='node_id',index=['lcmsrun_observed','sample_category'],values='peak_area',aggfunc='mean',fill_value=300)
+
+    # do ttest on each column
+    df_agg['p_value'] = 1
+    df_agg['t_score'] = 0
+    idx_control = d_sample.index.get_level_values(-1)=='control'
+    idx_treatment = d_sample.index.get_level_values(-1)=='treatment'
+    for node_id in d_sample.columns:
+        control_vals = d_sample.loc[idx_control,node_id].values
+        treatment_vals = d_sample.loc[idx_treatment,node_id].values
+        t_score,p_val = ttest_ind(control_vals,treatment_vals)
+        df_agg.loc[node_id,'p_value'] = p_val
+        df_agg.loc[node_id,'t_score'] = t_score
+    df_agg['log2_foldchange'] = np.log2(df_agg['mean-treatment'] / df_agg['mean-control'])
+    return df_agg
+
+
 def graph_to_df() -> pd.DataFrame:
     
     G = nx.read_graphml('/global/cfs/cdirs/metatlas/projects/carbon_network/CarbonNetwork.graphml')
@@ -60,13 +108,25 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     return merged_node_data
 
 
-def get_files_df(exp_dir: str,parse_filename=False) -> pd.DataFrame:
+def get_files_df(exp_dir: str,parse_filename=False,groups=None) -> pd.DataFrame:
     
     files = glob.glob(os.path.join(exp_dir,'*NEG*.h5'))
     files = [f for f in files if not 'exctrl' in f.lower()]
     files = [f for f in files if not 'qc' in f.lower()]
     
     files = pd.DataFrame(files, columns=['filename'])
+    if groups is not None:
+        group_control = groups['control']
+        group_treatment = groups['treatment']
+        idx1 = files['filename'].str.contains(group_control)
+        idx2 = files['filename'].str.contains(group_treatment)
+        files['sample_category'] = None
+        files.loc[idx1,'sample_category'] = 'control'
+        files.loc[idx2,'sample_category'] = 'treatment'
+
+        idx = idx1 | idx2
+        files = files[idx]
+
     if parse_filename==True:
         files['experiment'] = files['filename'].apply(lambda x: '_'.join(x.split('/')[-1].split('_')[4:6]))
         files['sampletype'] = files['filename'].apply(lambda x: x.split('/')[-1].split('_')[12])
@@ -90,8 +150,7 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
 def get_best_ms1_rawdata(ms1_data,node_data):
     max_ms1_data = ms1_data.copy()
     max_ms1_data.sort_values('peak_height', ascending=False,inplace=True)
-    max_ms1_data.drop_duplicates(subset='label',inplace=True)
-    max_ms1_data.rename(columns={'label': 'node_id'},inplace=True)
+    max_ms1_data.drop_duplicates(subset='node_id',inplace=True)
     max_ms1_data = pd.merge(max_ms1_data, node_data[['node_id', 'precursor_mz']], on='node_id',how='left')
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
     return max_ms1_data
@@ -194,6 +253,7 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
     ms1_data = pd.concat(ms1_data)
     ms1_data = ms1_data[ms1_data['peak_height']>peak_height_min]
     ms1_data = ms1_data[ms1_data['num_datapoints']>num_datapoints_min]
+    ms1_data.rename(columns={'label':'node_id'},inplace=True)
     # ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
     ms1_data.reset_index(inplace=True,drop=True)
     return ms1_data
