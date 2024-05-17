@@ -77,16 +77,21 @@ def do_basic_stats(ms1_data,files_data):
     return df_agg
 
 
-def graph_to_df() -> pd.DataFrame:
+def graph_to_df(feature='nodes') -> pd.DataFrame:
     
     G = nx.read_graphml('/global/cfs/cdirs/metatlas/projects/carbon_network/CarbonNetwork.graphml')
-
-    node_data = dict(G.nodes(data=True))
-    node_data = pd.DataFrame(node_data).T
-    node_data.index.name = 'node_id'
-    node_data.reset_index(inplace=True,drop=False)
-    
-    return node_data
+    if feature=='nodes':
+        node_data = dict(G.nodes(data=True))
+        node_data = pd.DataFrame(node_data).T
+        node_data.index.name = 'node_id'
+        node_data.reset_index(inplace=True,drop=False)
+        
+        return node_data
+    elif feature=='edges':
+        edge_data = nx.to_pandas_edgelist(G)
+        edge_data.rename(columns={'source': 'node_id1', 'target': 'node_id2'}, inplace=True)
+        
+        return edge_data
 
 
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
@@ -245,8 +250,12 @@ def calculate_ms1_summary(row):
 def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min,num_datapoints_min):
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
+
+    
     for file in tqdm(sample_files, unit='file'):
-    # for f in sample_files:
+        if file.endswith('parquet'):
+            file = file.replace('.parquet','.h5')
+    
         node_atlas.sort_values('mz',inplace=True)
         node_atlas['ppm_tolerance'] = mz_ppm_tolerance
         node_atlas['extra_time'] = 0
