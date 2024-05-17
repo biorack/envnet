@@ -51,7 +51,7 @@ def do_basic_stats(ms1_data,files_data):
 
     
     # calcualte group values
-    df_agg = df.groupby(['node_id','sample_category'])['peak_height'].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
+    df_agg = df.groupby(['node_id','sample_category'])['peak_area'].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
     df_agg.columns = ['node_id','sample_category', 'mean', 'median', 'std_dev', 'standard_error']
     df_agg = pd.pivot_table(df_agg,index='node_id',values=['mean','median','std_dev','standard_error'],columns=['sample_category'])
     df_agg.columns = df_agg.columns.map('-'.join)
@@ -70,7 +70,10 @@ def do_basic_stats(ms1_data,files_data):
         t_score,p_val = ttest_ind(control_vals,treatment_vals)
         df_agg.loc[node_id,'p_value'] = p_val
         df_agg.loc[node_id,'t_score'] = t_score
-    df_agg['log2_foldchange'] = np.log2(df_agg['mean-treatment'] / df_agg['mean-control'])
+    if 'mean-control' in df_agg.columns:
+        df_agg['log2_foldchange'] = np.log2(df_agg['mean-treatment'] / df_agg['mean-control'])
+    else:
+        df_agg['log2_foldchange'] = 0
     return df_agg
 
 
@@ -89,8 +92,9 @@ def graph_to_df() -> pd.DataFrame:
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     
     original_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/original_spectra.mgf')
+    print(original_spectra.shape)
     nl_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/nl_spectra.mgf')
-    
+    print(nl_spectra.shape)
     if 'orignal_id' in original_spectra:
         original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
     if 'orignal_id' in nl_spectra:
@@ -108,9 +112,13 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     return merged_node_data
 
 
-def get_files_df(exp_dir: str,parse_filename=False,groups=None) -> pd.DataFrame:
-    
-    files = glob.glob(os.path.join(exp_dir,'*NEG*.h5'))
+def get_files_df(exp_dir,parse_filename=False,groups=None) -> pd.DataFrame:
+    if type(exp_dir)==list:
+        files = []
+        for d in exp_dir:
+            files += glob.glob(os.path.join(d,'*NEG*.h5'))
+    else:
+        files = glob.glob(os.path.join(exp_dir,'*NEG*.h5'))
     files = [f for f in files if not 'exctrl' in f.lower()]
     files = [f for f in files if not 'qc' in f.lower()]
     
@@ -149,7 +157,7 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
 
 def get_best_ms1_rawdata(ms1_data,node_data):
     max_ms1_data = ms1_data.copy()
-    max_ms1_data.sort_values('peak_height', ascending=False,inplace=True)
+    max_ms1_data.sort_values('peak_area', ascending=False,inplace=True)
     max_ms1_data.drop_duplicates(subset='node_id',inplace=True)
     max_ms1_data = pd.merge(max_ms1_data, node_data[['node_id', 'precursor_mz']], on='node_id',how='left')
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
@@ -162,7 +170,7 @@ def get_best_ms2_rawdata(ms2_data):
     return max_ms2
 
 def get_best_ms1_ms2_combined(max_ms1_data,max_ms2_data):
-    cols = ['node_id','score','matches','lcmsrun_observed']
+    cols = ['node_id','score','matches','best_match_method','lcmsrun_observed']
     out = pd.merge(max_ms1_data,
     max_ms2_data[cols].add_prefix('ms2_'),
     left_on='node_id',
@@ -264,45 +272,57 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
     
     delta_mzs = pd.read_csv('/global/cfs/cdirs/metatlas/projects/carbon_network/mdm_neutral_losses.csv')
     
-    ms2_data = []
+    ms2_scores_out = []
     
     for file in tqdm(sample_files, unit='file'):
-        
-        data = run_workflow(file,
-                            delta_mzs,
-                            do_buddy = False,
-                            elminate_duplicate_spectra = False)
-        
-        ms2_data.append(data)
-        
-    ms2_data = pd.concat(ms2_data).reset_index(drop=True)
-    ms2_data = remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=mz_ppm_tolerance)
-    ms2_data['nl_spectrum'] = ms2_data.apply(lambda x: np.array([x.mdm_mz_vals, x.mdm_i_vals]), axis=1)
-    ms2_data['original_spectrum'] = ms2_data.apply(lambda x: np.array([x.original_mz_vals, x.original_i_vals]), axis=1)
+        if file.endswith('.parquet'):
+            data = pd.read_parquet(file)
+        else:
+            data = run_workflow(file,
+                                delta_mzs,
+                                do_buddy = False,
+                                elminate_duplicate_spectra = False)
+            
+        if data.shape[0] == 0:
+            continue
+        if not 'mdm_mz_vals' in data.columns:
+            continue
+        # ms2_data = pd.concat(ms2_data).reset_index(drop=True)
+        ms2_data = remove_unnecessary_ms2_data(data,merged_node_data,ppm_filter=mz_ppm_tolerance)
+        ms2_data.reset_index(drop=True,inplace=True)
+        ms2_data['nl_spectrum'] = ms2_data.apply(lambda x: np.array([x.mdm_mz_vals, x.mdm_i_vals]), axis=1)
+        ms2_data['original_spectrum'] = ms2_data.apply(lambda x: np.array([x.original_mz_vals, x.original_i_vals]), axis=1)
 
-    nl_data_spectra = ms2_data['nl_spectrum'].tolist()
-    nl_ref_spectra = merged_node_data['spectrum_nl_spectra'].tolist()
+        nl_data_spectra = ms2_data['nl_spectrum'].tolist()
+        nl_ref_spectra = merged_node_data['spectrum_nl_spectra'].tolist()
 
-    or_data_spectra = ms2_data['original_spectrum']
-    or_ref_spectra = merged_node_data['spectrum_original_spectra'].tolist()
+        or_data_spectra = ms2_data['original_spectrum']
+        or_ref_spectra = merged_node_data['spectrum_original_spectra'].tolist()
 
-    data_pmzs = ms2_data['precursor_mz'].tolist()
-    ref_pmzs = merged_node_data['precursor_mz'].tolist()
+        data_pmzs = ms2_data['precursor_mz'].tolist()
+        ref_pmzs = merged_node_data['precursor_mz'].tolist()
 
+        if len(nl_data_spectra)==0:
+            continue
+        if len(or_data_spectra)==0:
+            continue
+        discretized_spectra = blink.discretize_spectra(nl_data_spectra, nl_ref_spectra, data_pmzs,  ref_pmzs,
+                                                bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
+        nl_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
 
-    discretized_spectra = blink.discretize_spectra(nl_data_spectra, nl_ref_spectra, data_pmzs,  ref_pmzs,
-                                            bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
-    nl_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
+        discretized_spectra = blink.discretize_spectra(or_data_spectra, or_ref_spectra, data_pmzs,  ref_pmzs,
+                                                bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
+        or_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
 
-    discretized_spectra = blink.discretize_spectra(or_data_spectra, or_ref_spectra, data_pmzs,  ref_pmzs,
-                                            bin_width=0.001, tolerance=frag_mz_tolerance, intensity_power=0.5, trim_empty=False, remove_duplicates=False, network_score=False)
-    or_blink = do_blink(discretized_spectra,ms2_data,merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance)
+        ms2_scores = merge_or_nl_blink(nl_blink,or_blink)
+        ms2_scores = pd.merge(ms2_scores,merged_node_data[['node_id']],left_on='ref',right_index=True,how='left')
+        ms2_scores = pd.merge(ms2_scores,ms2_data[['filename']],left_on='query',right_index=True,how='left')
+        ms2_scores.rename(columns={'filename':'lcmsrun_observed'},inplace=True)
+        ms2_scores = ms2_scores.astype({'node_id': 'string', 'lcmsrun_observed': 'string'})
+        ms2_scores_out.append(ms2_scores)
+    if len(ms2_scores_out)==0:
+        return None
+    # ms2_scores_out = pd.concat(ms2_scores_out)
+    # ms2_scores_out.reset_index(drop=True,inplace=True)
 
-    ms2_scores = merge_or_nl_blink(nl_blink,or_blink)
-    ms2_scores = pd.merge(ms2_scores,merged_node_data[['node_id']],left_on='ref',right_index=True,how='left')
-    ms2_scores = pd.merge(ms2_scores,ms2_data[['filename']],left_on='query',right_index=True,how='left')
-    ms2_scores.rename(columns={'filename':'lcmsrun_observed'},inplace=True)
-    ms2_scores = ms2_scores.astype({'node_id': 'string', 'lcmsrun_observed': 'string'})
-
-
-    return ms2_scores
+    return ms2_scores_out
