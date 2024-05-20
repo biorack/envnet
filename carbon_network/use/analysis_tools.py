@@ -85,12 +85,9 @@ def graph_to_df(feature='nodes') -> pd.DataFrame:
         node_data = pd.DataFrame(node_data).T
         node_data.index.name = 'node_id'
         node_data.reset_index(inplace=True,drop=False)
-        
         return node_data
     elif feature=='edges':
         edge_data = nx.to_pandas_edgelist(G)
-        edge_data.rename(columns={'source': 'node_id1', 'target': 'node_id2'}, inplace=True)
-        
         return edge_data
 
 
