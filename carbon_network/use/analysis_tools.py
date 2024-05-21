@@ -1,33 +1,20 @@
 import networkx as nx
 import pandas as pd
+import numpy as np
 import os
+import sys
 import glob
 from scipy import interpolate
-import numpy as np
-from typing import List, Tuple
-
-from tqdm.notebook import tqdm
-
-# replace with submodules
-import sys
-sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
-from blink import open_msms_file
-import blink
-
-sys.path.insert(0,'/global/homes/b/bpb/repos/metatlas')
-from metatlas.io import feature_tools as ft
-
-
-module_path = os.path.abspath(os.path.join('/global/homes/b/bpb/repos/carbon_network/carbon_network/'))
-
-if module_path not in sys.path:
-    sys.path.append(module_path)
-    
-from build.preprocess import run_workflow
-
-
 from scipy.stats import ttest_ind
 
+from typing import List, Tuple
+from tqdm.notebook import tqdm
+
+sys.path.insert(0, '..')
+import blink.blink as blink
+from metatlas.metatlas.io import feature_tools as ft
+    
+from build.preprocess import run_workflow
 
 
 def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
@@ -93,9 +80,9 @@ def graph_to_df(feature='nodes') -> pd.DataFrame:
 
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     
-    original_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/original_spectra.mgf')
+    original_spectra = blink.open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/original_spectra.mgf')
     print(original_spectra.shape)
-    nl_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/nl_spectra.mgf')
+    nl_spectra = blink.open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/nl_spectra.mgf')
     print(nl_spectra.shape)
     if 'orignal_id' in original_spectra:
         original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
@@ -244,7 +231,7 @@ def calculate_ms1_summary(row):
     d['rt_peak'] = row.loc[idx,'rt']
     return pd.Series(d)
 
-def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min,num_datapoints_min):
+def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min, num_datapoints_min):
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
 
@@ -259,7 +246,14 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
         node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
                                              stepsize=mz_ppm_tolerance,
                                              do_ppm=True)
-        d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
+        
+        if file.endswith('mzML') or file.endswith('mzml'):
+            d = ft.get_atlas_data_from_mzml(file, node_atlas, desired_key='ms1_neg')
+        elif file.endswith('h5'):
+            d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
+        else:
+            raise Exception('unrecognized file type')
+        
         d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
         # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
         d['lcmsrun_observed'] = file
