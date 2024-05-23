@@ -1,0 +1,6 @@
+[submodule "metatlas"]
+	path = metatlas
+	url = https://github.com/biorack/metatlas
+[submodule "blink"]
+	path = blink
+	url = https://github.com/biorack/blink

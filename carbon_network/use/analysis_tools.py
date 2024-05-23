@@ -1,33 +1,21 @@
 import networkx as nx
 import pandas as pd
+import numpy as np
 import os
+import sys
 import glob
 from scipy import interpolate
-import numpy as np
-from typing import List, Tuple
-
-from tqdm.notebook import tqdm
-
-# replace with submodules
-import sys
-sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
-from blink import open_msms_file
-import blink
-
-sys.path.insert(0,'/global/homes/b/bpb/repos/metatlas')
-from metatlas.io import feature_tools as ft
-
-
-module_path = os.path.abspath(os.path.join('/global/homes/b/bpb/repos/carbon_network/carbon_network/'))
-
-if module_path not in sys.path:
-    sys.path.append(module_path)
-    
-from build.preprocess import run_workflow
-
-
 from scipy.stats import ttest_ind
 
+from typing import List, Tuple
+from tqdm.notebook import tqdm
+
+sys.path.insert(0, '../..')
+import blink.blink as blink
+from metatlas.metatlas.io import feature_tools as ft
+
+sys.path.insert(0, '..')
+from build.preprocess import run_workflow
 
 
 def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
@@ -39,7 +27,7 @@ def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
     return output
 
 
-def do_basic_stats(ms1_data,files_data):
+def do_basic_stats(ms1_data, files_data, my_groups):
 
     if 'sample_category' not in files_data.columns:
         return None
@@ -62,16 +50,16 @@ def do_basic_stats(ms1_data,files_data):
     # do ttest on each column
     df_agg['p_value'] = 1
     df_agg['t_score'] = 0
-    idx_control = d_sample.index.get_level_values(-1)=='control'
-    idx_treatment = d_sample.index.get_level_values(-1)=='treatment'
+    idx_control = d_sample.index.get_level_values(-1)==my_groups[0]
+    idx_treatment = d_sample.index.get_level_values(-1)==my_groups[1]
     for node_id in d_sample.columns:
         control_vals = d_sample.loc[idx_control,node_id].values
         treatment_vals = d_sample.loc[idx_treatment,node_id].values
         t_score,p_val = ttest_ind(control_vals,treatment_vals)
         df_agg.loc[node_id,'p_value'] = p_val
         df_agg.loc[node_id,'t_score'] = t_score
-    if 'mean-control' in df_agg.columns:
-        df_agg['log2_foldchange'] = np.log2(df_agg['mean-treatment'] / df_agg['mean-control'])
+    if 'mean-{}'.format(my_groups[0]) in df_agg.columns:
+        df_agg['log2_foldchange'] = np.log2(df_agg['mean-{}'.format(my_groups[1])] / df_agg['mean-{}'.format(my_groups[0])])
     else:
         df_agg['log2_foldchange'] = 0
     return df_agg
@@ -79,7 +67,7 @@ def do_basic_stats(ms1_data,files_data):
 
 def graph_to_df(feature='nodes') -> pd.DataFrame:
     
-    G = nx.read_graphml('/global/cfs/cdirs/metatlas/projects/carbon_network/CarbonNetwork.graphml')
+    G = nx.read_graphml('../../data/CarbonNetwork.graphml')
     if feature=='nodes':
         node_data = dict(G.nodes(data=True))
         node_data = pd.DataFrame(node_data).T
@@ -93,9 +81,9 @@ def graph_to_df(feature='nodes') -> pd.DataFrame:
 
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     
-    original_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/original_spectra.mgf')
+    original_spectra = blink.open_msms_file('../../data/original_spectra.mgf')
     print(original_spectra.shape)
-    nl_spectra = open_msms_file('/global/cfs/cdirs/metatlas/projects/carbon_network/nl_spectra.mgf')
+    nl_spectra = blink.open_msms_file('../../data/nl_spectra.mgf')
     print(nl_spectra.shape)
     if 'orignal_id' in original_spectra:
         original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
@@ -114,7 +102,7 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     return merged_node_data
 
 
-def get_files_df(exp_dir,parse_filename=False,groups=None) -> pd.DataFrame:
+def get_files_df(exp_dir, parse_filename=False, groups=None) -> pd.DataFrame:
     if type(exp_dir)==list:
         files = []
         for d in exp_dir:
@@ -126,13 +114,13 @@ def get_files_df(exp_dir,parse_filename=False,groups=None) -> pd.DataFrame:
     
     files = pd.DataFrame(files, columns=['filename'])
     if groups is not None:
-        group_control = groups['control']
-        group_treatment = groups['treatment']
+        group_control = groups[0]
+        group_treatment = groups[1]
         idx1 = files['filename'].str.contains(group_control)
         idx2 = files['filename'].str.contains(group_treatment)
         files['sample_category'] = None
-        files.loc[idx1,'sample_category'] = 'control'
-        files.loc[idx2,'sample_category'] = 'treatment'
+        files.loc[idx1,'sample_category'] = group_control
+        files.loc[idx2,'sample_category'] = group_treatment
 
         idx = idx1 | idx2
         files = files[idx]
@@ -154,7 +142,6 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     node_atlas['rt_peak'] = sum(rt_range) / 2
     
     return node_atlas
-
 
 
 def get_best_ms1_rawdata(ms1_data,node_data):
@@ -244,7 +231,7 @@ def calculate_ms1_summary(row):
     d['rt_peak'] = row.loc[idx,'rt']
     return pd.Series(d)
 
-def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min,num_datapoints_min):
+def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_ppm_tolerance: int, peak_height_min, num_datapoints_min):
     """Collect MS1 data from experimental sample data using node attributes."""
     ms1_data = []
 
@@ -259,7 +246,14 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
         node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
                                              stepsize=mz_ppm_tolerance,
                                              do_ppm=True)
-        d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
+        
+        if file.endswith('mzML') or file.endswith('mzml'):
+            d = ft.get_atlas_data_from_mzml(file, node_atlas, desired_key='ms1_neg')
+        elif file.endswith('h5'):
+            d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
+        else:
+            raise Exception('unrecognized file type')
+        
         d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
         # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
         d['lcmsrun_observed'] = file
@@ -332,3 +326,21 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
     # ms2_scores_out.reset_index(drop=True,inplace=True)
 
     return ms2_scores_out
+
+
+def annotate_graphml(output_df, node_data):
+    
+    G = nx.read_graphml('../../data/CarbonNetwork.graphml')
+    
+    for col in output_df:
+        dt = output_df[col].dtype 
+        if dt == int or dt == float:
+            output_df[col].fillna(0, inplace=True)
+        else:
+            output_df[col].fillna("", inplace=True)
+            
+    new_node_attributes = output_df.drop(columns=node_data.drop(columns=['node_id']).columns).to_dict(orient='index')
+    new_node_attributes = {str(k):v for k,v in new_node_attributes.items()}
+
+    nx.set_node_attributes(G, new_node_attributes)
+    nx.write_graphml(G, 'AnnotatedCarbonNetwork.graphml')
