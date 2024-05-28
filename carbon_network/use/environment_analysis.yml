@@ -183,4 +183,3 @@ dependencies:
       - traitlets==5.14.3
       - wcwidth==0.2.13
       - widgetsnbextension==4.0.11
-prefix: /global/homes/t/tharwood/.conda/envs/carbon_network
