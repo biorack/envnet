@@ -17,7 +17,6 @@ def arg_parser(parser=None):
     parser.add_argument('-2f', '--files_group2', nargs='+', type=str, action='store', required=True)
     parser.add_argument('-2fn', '--files_group2_name', type=str, action='store', required=True)
     
-    parser.add_argument('-rd', '--raw_data_dir', type=str, action='store', required=True)
     parser.add_argument('-exn', '--exp_name', type=str, action='store', required=True)
     
     # analysis paramter options

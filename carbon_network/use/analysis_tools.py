@@ -10,11 +10,16 @@ from scipy.stats import ttest_ind
 from typing import List, Tuple
 from tqdm.notebook import tqdm
 
-sys.path.insert(0, '../..')
+module_path = os.path.abspath('')
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
+sys.path.insert(0, os.path.join(module_path, '../..'))
+sys.path.insert(0, os.path.join(module_path, '..'))
+
 import blink.blink as blink
 from metatlas.metatlas.io import feature_tools as ft
 
-sys.path.insert(0, '..')
 from build.preprocess import run_workflow
 
 
