@@ -18,7 +18,10 @@ import sys
 from collections import defaultdict
 
 
-sys.path.insert(0, '..')
+from pathlib import Path
+module_path = os.path.join(Path(__file__).parents[2])
+sys.path.insert(0, module_path)
+
 import blink.blink as blink
 from metatlas.metatlas.io import feature_tools as ft
 

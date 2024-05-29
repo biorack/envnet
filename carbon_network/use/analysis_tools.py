@@ -10,17 +10,13 @@ from scipy.stats import ttest_ind
 from typing import List, Tuple
 from tqdm.notebook import tqdm
 
-module_path = os.path.abspath('')
-if module_path not in sys.path:
-    sys.path.append(module_path)
-
-sys.path.insert(0, os.path.join(module_path, '../..'))
-sys.path.insert(0, os.path.join(module_path, '..'))
+from pathlib import Path
+module_path = os.path.join(Path(__file__).parents[2])
+sys.path.insert(0, module_path)
 
 import blink.blink as blink
 from metatlas.metatlas.io import feature_tools as ft
-
-from build.preprocess import run_workflow
+from carbon_network.build.preprocess import run_workflow
 
 
 def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
@@ -71,8 +67,7 @@ def do_basic_stats(ms1_data, files_data, my_groups):
 
 
 def graph_to_df(feature='nodes') -> pd.DataFrame:
-    
-    G = nx.read_graphml('../../data/CarbonNetwork.graphml')
+    G = nx.read_graphml(os.path.join(module_path, 'data/CarbonNetwork.graphml'))
     if feature=='nodes':
         node_data = dict(G.nodes(data=True))
         node_data = pd.DataFrame(node_data).T
@@ -86,9 +81,9 @@ def graph_to_df(feature='nodes') -> pd.DataFrame:
 
 def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     
-    original_spectra = blink.open_msms_file('../../data/original_spectra.mgf')
+    original_spectra = blink.open_msms_file(os.path.join(module_path, 'data/original_spectra.mgf'))
     print(original_spectra.shape)
-    nl_spectra = blink.open_msms_file('../../data/nl_spectra.mgf')
+    nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data/nl_spectra.mgf'))
     print(nl_spectra.shape)
     if 'orignal_id' in original_spectra:
         original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
@@ -275,7 +270,7 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
 def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance,frag_mz_tolerance) -> pd.DataFrame:
     """Collect all MS2 data from experimental sample data and calculate ."""
     
-    delta_mzs = pd.read_csv('/global/cfs/cdirs/metatlas/projects/carbon_network/mdm_neutral_losses.csv')
+    delta_mzs = pd.read_csv(os.path.join(module_path, 'data/mdm_neutral_losses.csv'))
     
     ms2_scores_out = []
     
@@ -335,7 +330,7 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
 
 def annotate_graphml(output_df, node_data):
     
-    G = nx.read_graphml('../../data/CarbonNetwork.graphml')
+    G = nx.read_graphml(os.path.join(module_path, 'data/CarbonNetwork.graphml'))
     
     for col in output_df:
         dt = output_df[col].dtype 
