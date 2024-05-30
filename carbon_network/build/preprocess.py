@@ -18,7 +18,7 @@ import sys
 from collections import defaultdict
 
 
-sys.path.insert(0,'/global/homes/t/tharwood/repos/blink')
+sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
 import blink
 
                             
