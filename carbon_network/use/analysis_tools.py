@@ -373,8 +373,17 @@ def query_fasst_peaks(precursor_mz, peaks, database, serverurl="https://fasst.gn
 def annotate_graphml(output_df, node_data):
     
     G = nx.read_graphml(os.path.join(module_path, 'data/CarbonNetwork.graphml'))
+
+    # get the first node id
+    node_id = list(G.nodes())[0]
+
+    # get the names of all node attributes
+    node_attributes = list(G.nodes[node_id].keys())
+
     
     for col in output_df:
+        if col in node_attributes:
+            continue
         dt = output_df[col].dtype 
         if dt == int or dt == float:
             output_df[col].fillna(0, inplace=True)
