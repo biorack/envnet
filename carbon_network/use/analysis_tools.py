@@ -14,6 +14,8 @@ from pathlib import Path
 module_path = os.path.join(Path(__file__).parents[2])
 sys.path.insert(0, module_path)
 
+import json
+import requests
 import blink.blink as blink
 from metatlas.metatlas.io import feature_tools as ft
 from carbon_network.build.preprocess import run_workflow
@@ -59,8 +61,9 @@ def do_basic_stats(ms1_data, files_data, my_groups):
         t_score,p_val = ttest_ind(control_vals,treatment_vals)
         df_agg.loc[node_id,'p_value'] = p_val
         df_agg.loc[node_id,'t_score'] = t_score
+
     if 'mean-{}'.format(my_groups[0]) in df_agg.columns:
-        df_agg['log2_foldchange'] = np.log2(df_agg['mean-{}'.format(my_groups[1])] / df_agg['mean-{}'.format(my_groups[0])])
+        df_agg['log2_foldchange'] = np.log2((1+df_agg['mean-{}'.format(my_groups[1])] )/ (1+df_agg['mean-{}'.format(my_groups[0])]))
     else:
         df_agg['log2_foldchange'] = 0
     return df_agg
@@ -183,7 +186,8 @@ def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_m
     scores = pd.merge(scores,exp_df[['precursor_mz']].add_suffix('_exp'),left_on='query',right_index=True,how='left')
     scores = pd.merge(scores,ref_df[['precursor_mz']].add_suffix('_ref'),left_on='ref',right_index=True,how='left')
     scores['mz_diff'] = abs(scores['precursor_mz_exp'] - scores['precursor_mz_ref']) / scores['precursor_mz_ref'] * 1e6
-    scores = scores[scores['mz_diff']<mz_ppm_tolerance]
+    if mz_ppm_tolerance is not None:
+        scores = scores[scores['mz_diff']<mz_ppm_tolerance]
     scores.set_index(cols,inplace=True,drop=True)
 
     return scores
@@ -327,6 +331,44 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
 
     return ms2_scores_out
 
+
+def query_fasst_peaks(precursor_mz, peaks, database, serverurl="https://fasst.gnps2.org/search", analog=False, precursor_mz_tol=0.05, fragment_mz_tol=0.05, min_cos=0.7):
+    """
+    database = "gnpsdata_index"
+    database = "gnpslibrary"
+
+    spectrum = 54.0348   5
+    58.0297 2
+    68.0504 2
+    81.0455 100
+    95.061  6
+    138.0663    70
+    156.0769    10
+    spectrum = spectrum.split('\n')
+    spectrum = [x.split() for x in spectrum]
+
+    spectrum = [[float(x[0]), float(x[1])] for x in spectrum]
+    precursor = 156.0769
+    """
+    spectrum_query = {
+        "peaks": peaks,
+        "precursor_mz": precursor_mz
+    }
+
+    params = {
+        "query_spectrum": json.dumps(spectrum_query),
+        "library": database,
+        "analog": "Yes" if analog else "No",
+        "pm_tolerance": precursor_mz_tol,
+        "fragment_tolerance": fragment_mz_tol,
+        "cosine_threshold": min_cos,
+    }
+
+    r = requests.post(serverurl, data=params, timeout=50)
+
+    r.raise_for_status()
+
+    return r.json()
 
 def annotate_graphml(output_df, node_data):
     
