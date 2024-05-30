@@ -18,8 +18,13 @@ import sys
 from collections import defaultdict
 
 
-sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
-import blink
+
+from pathlib import Path
+module_path = os.path.join(Path(__file__).parents[2])
+sys.path.insert(0, module_path)
+
+import blink.blink as blink
+from metatlas.metatlas.io import feature_tools as ft
 
                             
 def run_workflow(f,
@@ -286,7 +291,12 @@ def split_each_spectrum(grouped_ions,mz_tol,fraction_required):
     return pure_spectra
 
 def group_ms2file_spectra(file,deltas,isolation_tol=2.5,mz_tol=0.002,file_key='ms2_neg',min_rt=1,max_rt=7,do_parallel=True,max_cores=15,fraction_required=3):
-    ms2_df = pd.read_hdf(file,file_key)
+    
+    if file.endswith('h5'):
+        ms2_df = pd.read_hdf(file,file_key)
+    elif file.endswith('mzML') or file.endswith('mzml'):
+        ms2_df = ft.df_container_from_mzml_file(file, file_key)
+        
     ms2_df = ms2_df[ms2_df['rt']>min_rt]
     ms2_df = ms2_df[ms2_df['rt']<max_rt]
 
@@ -389,7 +399,12 @@ def filter_spectra_by_percent(x,p=0.01):
 
 
 def get_original_spectra(f,file_key='ms2_neg',filter_percent=0.01):
-    ref = pd.read_hdf(f,file_key)
+    
+    if f.endswith('h5'):
+        ref = pd.read_hdf(f, file_key)
+    elif f.endswith('mzML') or f.endswith('mzml'):
+        ref = ft.df_container_from_mzml_file(f, file_key)
+        
     ref.columns = [c.lower() for c in ref.columns]
     ref.drop(columns=['collision_energy'],inplace=True)
     ref = ref[pd.notna(ref['precursor_mz'])]
