@@ -20,8 +20,8 @@ def main(args):
     deltas = pd.read_csv('/global/homes/b/bpb/repos/scndb/data/mdm_neutral_losses.csv')
 
     out_file = file.replace('.h5', '.parquet')
-    out_file = '/pscratch/sd/b/bpb/metatlas_mdm_parquet_files' + out_file
-    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+    # out_file = '/pscratch/sd/b/bpb/metatlas_mdm_parquet_files' + out_file
+    # os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
     print(out_file)
     try:
