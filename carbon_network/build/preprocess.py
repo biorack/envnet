@@ -85,8 +85,8 @@ def run_workflow(f,
         result,msb_engine = run_buddy(df,ionization_mode=my_polarity,spectrum_key='temp_spectrum')
 
         result.rename(columns={'adduct':'assumed_adduct','formula_rank_1':'predicted_formula'},inplace=True)
-        cols = [c for c in result.columns if 'rank_' in c]
-        result.drop(columns=cols,inplace=True)
+        rank_cols = [c for c in result.columns if 'rank_' in c]
+        result.drop(columns=rank_cols,inplace=True)
 
         df = pd.merge(df,result.drop(columns=['mz','rt']),left_index=True,right_on='identifier',how='inner')
         # formula_props = get_formula_props(df,formula_key='predicted_formula')
@@ -94,7 +94,7 @@ def run_workflow(f,
         df.drop(columns=['identifier'],inplace=True)
         
         cols += ['assumed_adduct', 'buddy_spectrum']
-
+    cols = [c for c in cols if c in df.columns]
     df.drop(columns=cols,inplace=True)
     df.reset_index(inplace=True,drop=True)
 
@@ -607,26 +607,26 @@ def run_buddy(mgf_df,ionization_mode,max_fdr=0.05,spectrum_key='spectrum',
     result = msb_engine.get_summary()
     r = pd.DataFrame(result)
     
-    # Get the explained ions for each top hit
-    buddy_spectra = []
-    for d in msb_engine.data:
-        x = d.ms2_raw.mz_array
-        y = d.ms2_raw.int_array
-        if len(d.candidate_formula_list)==0:
-            buddy_spectra.append(None)
-        else:
-            h = d.candidate_formula_list[0]
-            if h.ms2_raw_explanation is not None:
-                idx = [i for i in h.ms2_raw_explanation.idx_array]
-                idx = np.asarray(idx)
-                buddy_spectra.append(np.asarray([x[idx],y[idx]]))
-            else:
-                buddy_spectra.append(None)
+    # # Get the explained ions for each top hit
+    # buddy_spectra = []
+    # for d in msb_engine.data:
+    #     x = d.ms2_raw.mz_array
+    #     y = d.ms2_raw.int_array
+    #     if len(d.candidate_formula_list)==0:
+    #         buddy_spectra.append(None)
+    #     else:
+    #         h = d.candidate_formula_list[0]
+    #         if h.ms2_raw_explanation is not None:
+    #             idx = [i for i in h.ms2_raw_explanation.idx_array]
+    #             idx = np.asarray(idx)
+    #             buddy_spectra.append(np.asarray([x[idx],y[idx]]))
+    #         else:
+    #             buddy_spectra.append(None)
         
-    r['buddy_spectrum'] = buddy_spectra    
+    # r['buddy_spectrum'] = buddy_spectra    
 
     r = r[r['estimated_fdr']<max_fdr]
-    r = r[pd.notna(r['buddy_spectrum'])]
+    # r = r[pd.notna(r['buddy_spectrum'])]
     
     return r,msb_engine
 
