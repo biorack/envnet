@@ -21,7 +21,8 @@ from collections import defaultdict
 from pathlib import Path
 module_path = os.path.join(Path(__file__).parents[2])
 sys.path.insert(0, module_path)
-sys.path.insert(1,os.path.join(module_path,'blink'))
+sys.path.insert(1,os.path.join(module_path,'metatlas'))
+sys.path.insert(2,os.path.join(module_path,'blink'))
 
 import blink
 
