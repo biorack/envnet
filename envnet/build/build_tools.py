@@ -18,7 +18,11 @@ import sys
 from collections import defaultdict
 
 
-sys.path.insert(0,'/global/homes/b/bpb/repos/blink')
+from pathlib import Path
+module_path = os.path.join(Path(__file__).parents[2])
+sys.path.insert(0, module_path)
+sys.path.insert(1,os.path.join(module_path,'blink'))
+
 import blink
 
 

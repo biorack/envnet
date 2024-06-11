@@ -10,15 +10,18 @@ from scipy.stats import ttest_ind
 from typing import List, Tuple
 from tqdm.notebook import tqdm
 
+
 from pathlib import Path
 module_path = os.path.join(Path(__file__).parents[2])
 sys.path.insert(0, module_path)
+sys.path.insert(1,os.path.join(module_path,'metatlas'))
+sys.path.insert(2,os.path.join(module_path,'blink'))
 
 import json
 import requests
-import blink.blink as blink
-from metatlas.metatlas.io import feature_tools as ft
-from carbon_network.build.preprocess import run_workflow
+import blink as blink
+from metatlas.io import feature_tools as ft
+from envnet.build.preprocess import run_workflow
 
 
 def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
