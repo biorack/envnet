@@ -1,1 +1,1 @@
-# carbon_network
+# Environmental Molecular Network (ENVnet)
