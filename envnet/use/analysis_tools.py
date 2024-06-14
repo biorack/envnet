@@ -91,10 +91,7 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
     print(original_spectra.shape)
     nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data/nl_spectra.mgf'))
     print(nl_spectra.shape)
-    if 'orignal_id' in original_spectra:
-        original_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
-    if 'orignal_id' in nl_spectra:
-        nl_spectra.rename(columns={'orignal_id': 'original_id'}, inplace=True)
+
         
     original_spectra['node_id'] = original_spectra['original_id'].apply(lambda x: str(float(x)))
     nl_spectra['node_id'] = nl_spectra['original_id'].apply(lambda x: str(float(x)))
