@@ -95,7 +95,7 @@ def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
         
     original_spectra['node_id'] = original_spectra['original_id'].apply(lambda x: str(float(x)))
     nl_spectra['node_id'] = nl_spectra['original_id'].apply(lambda x: str(float(x)))
-    
+    node_data['node_id'] = node_data['original_index'].apply(lambda x: str(float(x)))
     original_spectra.rename(columns={c: c+'_original_spectra' for c in original_spectra.columns if c not in ['node_id']}, inplace=True)
     nl_spectra.rename(columns={c: c+'_nl_spectra' for c in nl_spectra.columns if c not in ['node_id']}, inplace=True)
     
