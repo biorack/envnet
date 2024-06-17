@@ -34,7 +34,8 @@ def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
 
 
 def do_basic_stats(ms1_data, files_data, my_groups):
-
+    if type(my_groups)==dict:
+        my_groups = [my_groups['control'],my_groups['treatment']]
     if 'sample_category' not in files_data.columns:
         return None
     # merge in sample category
