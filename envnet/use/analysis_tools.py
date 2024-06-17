@@ -114,7 +114,8 @@ def get_files_df(exp_dir, parse_filename=False, groups=None) -> pd.DataFrame:
         files = glob.glob(os.path.join(exp_dir,'*NEG*.h5'))
     files = [f for f in files if not 'exctrl' in f.lower()]
     files = [f for f in files if not 'qc' in f.lower()]
-    
+    if type(groups)==dict:
+        groups = [groups['control'],groups['treatment']]
     files = pd.DataFrame(files, columns=['filename'])
     if groups is not None:
         group_control = groups[0]
@@ -323,6 +324,7 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
         ms2_scores = pd.merge(ms2_scores,ms2_data[['filename']],left_on='query',right_index=True,how='left')
         ms2_scores.rename(columns={'filename':'lcmsrun_observed'},inplace=True)
         ms2_scores = ms2_scores.astype({'node_id': 'string', 'lcmsrun_observed': 'string'})
+        ms2_scores['lcmsrun_observed'] = file
         ms2_scores_out.append(ms2_scores)
     if len(ms2_scores_out)==0:
         return None
