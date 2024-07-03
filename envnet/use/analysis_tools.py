@@ -73,8 +73,8 @@ def do_basic_stats(ms1_data, files_data, my_groups):
     return df_agg
 
 
-def graph_to_df(feature='nodes') -> pd.DataFrame:
-    G = nx.read_graphml(os.path.join(module_path, 'data/CarbonNetwork.graphml'))
+def graph_to_df(filename='envnet.graphml',feature='nodes') -> pd.DataFrame:
+    G = nx.read_graphml(os.path.join(module_path, 'data/%s'%filename))
     if feature=='nodes':
         node_data = dict(G.nodes(data=True))
         node_data = pd.DataFrame(node_data).T
@@ -86,11 +86,11 @@ def graph_to_df(feature='nodes') -> pd.DataFrame:
         return edge_data
 
 
-def merge_spectral_data(node_data: pd.DataFrame) -> pd.DataFrame:
+def merge_spectral_data(node_data: pd.DataFrame,filename_str='envnet') -> pd.DataFrame:
     
-    original_spectra = blink.open_msms_file(os.path.join(module_path, 'data/original_spectra.mgf'))
+    original_spectra = blink.open_msms_file(os.path.join(module_path, 'data/%s_original_spectra.mgf'%filename_str))
     print(original_spectra.shape)
-    nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data/nl_spectra.mgf'))
+    nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data/%s_mdm_spectra.mgf'%filename_str))
     print(nl_spectra.shape)
 
         
