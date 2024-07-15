@@ -17,7 +17,7 @@ def arg_parser(parser=None):
     parser.add_argument('-2f', '--files_group2', nargs='+', type=str, action='store', required=True)
     parser.add_argument('-2fn', '--files_group2_name', type=str, action='store', required=True)
     
-    parser.add_argument('-exn', '--exp_name', type=str, action='store', required=True)
+    parser.add_argument('-exn', '--exp_name', type=str, action='store', required=False)
     
     # analysis paramter options
     analysis_parameters = parser.add_argument_group()
@@ -38,7 +38,7 @@ def arg_parser(parser=None):
 
 def main(args):
     
-    output_filename = f'OUTPUT_{args.exp_name}_{args.files_group1_name}-vs-{args.files_group2_name}.csv'
+    output_filename = 'output_group1-vs-group2.csv'
     my_groups = (args.files_group1_name, args.files_group2_name)
     
     node_data = at.graph_to_df()
