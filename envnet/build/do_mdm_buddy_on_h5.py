@@ -2,8 +2,8 @@
 import sys
 import os
 import argparse
-sys.path.insert(0,'/global/homes/b/bpb/repos/carbon_network')
-from carbon_network.build import preprocess as pp
+sys.path.insert(0,'/global/homes/b/bpb/repos/envnet')
+from envnet.build import preprocess as pp
 import pandas as pd
 
 # file = '/global/cfs/cdirs/metatlas/projects/rawdata_for_scn/20181217_KBL_TM_Lakes_GEODES_All3_QE-HF_C18_USDAY46918_NEG_MSMS_10_GEO-ME-44-UF_1_Rg80to1200-CE102040-0-7-S1_Run46.h5'
@@ -17,7 +17,7 @@ def main(args):
     my_polarity = args.my_polarity
     max_rt = args.max_rt
     file = args.file
-    deltas = pd.read_csv('/global/homes/b/bpb/repos/scndb/data/mdm_neutral_losses.csv')
+    deltas = pd.read_csv('/global/homes/b/bpb/repos/envnet/data/mdm_neutral_losses.csv')
 
     out_file = file.replace('.h5', '.parquet')
     # out_file = '/pscratch/sd/b/bpb/metatlas_mdm_parquet_files' + out_file
