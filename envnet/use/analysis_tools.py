@@ -375,7 +375,7 @@ def query_fasst_peaks(precursor_mz, peaks, database, serverurl="https://fasst.gn
 
 def annotate_graphml(output_df, node_data):
     
-    G = nx.read_graphml(os.path.join(module_path, 'data/CarbonNetwork.graphml'))
+    G = nx.read_graphml(os.path.join(module_path, 'data/envnet.graphml'))
 
     # get the first node id
     node_id = list(G.nodes())[0]
@@ -397,4 +397,4 @@ def annotate_graphml(output_df, node_data):
     new_node_attributes = {str(k):v for k,v in new_node_attributes.items()}
 
     nx.set_node_attributes(G, new_node_attributes)
-    nx.write_graphml(G, 'AnnotatedCarbonNetwork.graphml')
+    nx.write_graphml(G, 'AnnotatedENVnet.graphml')
