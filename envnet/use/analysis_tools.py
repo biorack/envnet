@@ -1,11 +1,13 @@
 import networkx as nx
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import sys
 import glob
 from scipy import interpolate
 from scipy.stats import ttest_ind
+from scipy.stats import binomtest
 
 from typing import List, Tuple
 from tqdm.notebook import tqdm
@@ -373,6 +375,7 @@ def query_fasst_peaks(precursor_mz, peaks, database, serverurl="https://fasst.gn
 
     return r.json()
 
+
 def annotate_graphml(output_df, node_data):
     
     G = nx.read_graphml(os.path.join(module_path, 'data/envnet.graphml'))
@@ -398,3 +401,113 @@ def annotate_graphml(output_df, node_data):
 
     nx.set_node_attributes(G, new_node_attributes)
     nx.write_graphml(G, 'AnnotatedENVnet.graphml')
+
+
+def do_binom_test(x,direction_count='positive_count',total_count='count'):
+    t = binomtest(x['positive_count'], x['count'], 0.5)
+    return t.pvalue
+
+
+def agg_func(x):
+    count_pos = (x > 0).sum()
+    count_neg = (x < 0).sum()
+    return pd.Series([{
+        'mean': x.mean(),
+        'stderror': x.std(),
+        'count': x.count(),
+        'positive_count': count_pos,
+        'negative_count': count_neg
+    }])
+
+
+def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.'):
+    idx = (pd.notna(df[class_column])) & (df['p_value'] < max_pvalue)
+    g = df[idx].groupby(class_column)['log2_foldchange'].apply(agg_func)
+    g = pd.DataFrame(g.tolist(), index=g.index).reset_index(drop=False)
+    g = g[g['positive_count']>=1]
+    g['binomial_pvalue'] = g.apply(lambda x: do_binom_test(x,direction_count='positive_count'), axis=1)
+    g = g[g['binomial_pvalue']<=max_pvalue]
+    if g.shape[0] == 0:
+        return
+    g.sort_values('mean', ascending=False, inplace=True)
+    g.set_index(class_column, inplace=True)
+    g.to_csv('{}/{}_results.csv'.format(plot_output_dir, class_column))
+
+    h = g.shape[0] * 0.5
+    if h < 3:
+        h = 3
+    fig, ax = plt.subplots(figsize=(10, h))
+    g['mean'].plot.barh(xerr=g['stderror'], ax=ax)
+    ax.set_xlabel('Log2 Fold Change (%s over %s)' % (inputfiles2_name, inputfiles1_name))
+    plt.tight_layout()
+    fig.savefig('{}/{}_results.png'.format(plot_output_dir, class_column))
+
+
+def set_cover(coverage_dict):
+    coverage_dict = coverage_dict.copy()
+    # Create a list of all unique nodes
+    all_nodes = set()
+    for nodes in coverage_dict.values():
+        all_nodes.update(nodes)
+    
+    # Initialize an empty list to store selected species
+    selected_species = []
+    
+    # While there are still uncovered nodes
+    while all_nodes:
+        # Find the species that covers the maximum number of uncovered nodes
+        best_species = None
+        best_covered = set()
+        
+        for species, nodes in coverage_dict.items():
+            # Calculate the number of uncovered nodes covered by this species
+            covered = nodes.intersection(all_nodes)
+            
+            # If this species covers more nodes than the current best, update
+            if len(covered) > len(best_covered):
+                best_species = species
+                best_covered = covered
+        
+        # Add the best species to the selected species list
+        selected_species.append(best_species)
+        
+        # Remove the covered nodes from the set of all nodes
+        all_nodes.difference_update(best_covered)
+        
+        # Remove the best species from the dictionary to prevent it from being chosen again
+        del coverage_dict[best_species]
+    
+    return selected_species
+
+
+def make_set_coverage_results(df, fig_name, plot_output_dir='.'):
+    unique_nodes = df.groupby('lcmsrun_observed')['node_id'].value_counts().reset_index(name='count')
+    unique_nodes = unique_nodes[unique_nodes['count']>0]
+    unique_nodes = unique_nodes.groupby('lcmsrun_observed')['node_id'].unique()
+    unique_nodes = unique_nodes.to_dict()
+    # use the set cover algorithm to find the top species that cover the most nodes
+    # Create a dictionary where the keys are species and the values are sets of nodes that the species cover
+    species_nodes = {species: set(nodes) for species, nodes in unique_nodes.items()}
+    selected_species = set_cover(species_nodes)
+    n = len(selected_species)
+    # now show their combined coverage
+    combined_nodes = set()
+    combined_count = []
+    individual_count = []
+    for species in selected_species[:n]:
+        combined_nodes.update(species_nodes[species])
+        combined_count.append(len(combined_nodes))
+        individual_count.append(len(species_nodes[species]))
+
+    fig,ax = plt.subplots(figsize=(10,4))
+    ax.bar(range(n),individual_count,color='orange',alpha=0.5)
+    ax.plot(range(n),combined_count,'.-',markersize=18)
+    ax.set_xlabel('Cumulative Addition of Environments')
+    ax.set_ylabel('Number of Cumulative Nodes\nAcross Environments')
+    ax.set_xticks(range(n))
+    ax.set_xticklabels(selected_species[:n],rotation=45,ha='right')
+    ax.grid(True)
+    ax.legend(['Cumulative','Individual'],loc='upper left',bbox_to_anchor=(0.01,1.20))
+
+    plt.tight_layout()
+    fig.savefig('{}/{}_set_cover_results.png'.format(plot_output_dir, fig_name))

@@ -24,7 +24,8 @@ def arg_parser(parser=None):
     
     # parameters for ms1 matching
     analysis_parameters.add_argument('-mzt', '--mz_tol', type=int, action='store', default=5, required=False)
-    analysis_parameters.add_argument('-rtr', '--rt_range', type=list, action='store', default=[1, 7], required=False)
+    analysis_parameters.add_argument('-rtmi', '--rt_min', type=float, action='store', default=1.0, required=False)
+    analysis_parameters.add_argument('-rtma', '--rt_max', type=float, action='store', default=7.0, required=False)
     analysis_parameters.add_argument('-pkm', '--pk_height_min', type=float, action='store', default=1e4, required=False)
     analysis_parameters.add_argument('-ndm', '--num_data_min', type=float, action='store', default=10, required=False)
     
@@ -43,7 +44,7 @@ def main(args):
     
     node_data = at.graph_to_df()
     
-    node_atlas = at.make_node_atlas(node_data, args.rt_range)
+    node_atlas = at.make_node_atlas(node_data, [args.rt_min, args.rt_max])
     merged_node_data = at.merge_spectral_data(node_data)
     files = args.files_group1 + args.files_group2
 
