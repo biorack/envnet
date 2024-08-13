@@ -424,7 +424,7 @@ def agg_func(x):
     }])
 
 
-def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.'):
+def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.', pdf=None):
     idx = (pd.notna(df[class_column])) & (df['p_value'] < max_pvalue)
     g = df[idx].groupby(class_column)['log2_foldchange'].apply(agg_func)
     g = pd.DataFrame(g.tolist(), index=g.index).reset_index(drop=False)
@@ -444,7 +444,10 @@ def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_c
     g['mean'].plot.barh(xerr=g['stderror'], ax=ax)
     ax.set_xlabel('Log2 Fold Change (%s over %s)' % (inputfiles2_name, inputfiles1_name))
     plt.tight_layout()
-    fig.savefig('{}/{}_results.png'.format(plot_output_dir, class_column))
+    if pdf is None:
+        fig.savefig('{}/{}_results.png'.format(plot_output_dir, class_column))
+    else:
+        pdf.savefig()
 
 
 def set_cover(coverage_dict):
@@ -484,7 +487,7 @@ def set_cover(coverage_dict):
     return selected_species
 
 
-def make_set_coverage_results(df, fig_name, plot_output_dir='.'):
+def make_set_coverage_results(df, fig_name, plot_output_dir='.', pdf=None):
     unique_nodes = df.groupby('lcmsrun_observed')['node_id'].value_counts().reset_index(name='count')
     unique_nodes = unique_nodes[unique_nodes['count']>0]
     unique_nodes = unique_nodes.groupby('lcmsrun_observed')['node_id'].unique()
@@ -514,4 +517,7 @@ def make_set_coverage_results(df, fig_name, plot_output_dir='.'):
     ax.legend(['Cumulative','Individual'],loc='upper left',bbox_to_anchor=(0.01,1.20))
 
     plt.tight_layout()
-    fig.savefig('{}/{}_set_cover_results.png'.format(plot_output_dir, fig_name))
+    if pdf is None:
+        fig.savefig('{}/{}_set_cover_results.png'.format(plot_output_dir, fig_name), bbox_inches='tight')
+    else:
+        pdf.savefig(bbox_inches='tight')
