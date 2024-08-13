@@ -35,7 +35,7 @@ def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
     return output
 
 
-def do_basic_stats(ms1_data, files_data, my_groups):
+def do_basic_stats(ms1_data, files_data, my_groups,normalize=False):
     if type(my_groups)==dict:
         my_groups = [my_groups['control'],my_groups['treatment']]
     if 'sample_category' not in files_data.columns:
@@ -55,7 +55,10 @@ def do_basic_stats(ms1_data, files_data, my_groups):
 
     # pivot for easy ttest
     d_sample = df.pivot_table(columns='node_id',index=['lcmsrun_observed','sample_category'],values='peak_area',aggfunc='mean',fill_value=300)
-
+    if normalize==True:
+        s = d_sample.sum(axis=1)
+        p_n = d_sample.div(s, axis=0)
+        d_sample = p_n * s.mean()
     # do ttest on each column
     df_agg['p_value'] = 1
     df_agg['t_score'] = 0
@@ -224,6 +227,7 @@ def remove_unnecessary_ms2_data(ms2_data,merged_node_data,ppm_filter=5):
     ms2_data = ms2_data[ms2_data['mz_diff']<ppm_filter]
     ms2_data.reset_index(inplace=True,drop=True)
     return ms2_data
+
 
 def calculate_ms1_summary(row):
     """
