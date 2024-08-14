@@ -35,11 +35,22 @@ def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
     return output
 
 
-def do_basic_stats(ms1_data, files_data, my_groups,normalize=False):
+def do_basic_stats(ms1_data, files_data, my_groups,normalize=True):
     if type(my_groups)==dict:
         my_groups = [my_groups['control'],my_groups['treatment']]
     if 'sample_category' not in files_data.columns:
         return None
+    
+    # normalize the data
+    d_sample = ms1_data.pivot_table(columns='node_id',index=['lcmsrun_observed'],values='peak_area',aggfunc='mean',fill_value=0)
+    if normalize==True:
+        s = d_sample.sum(axis=1)
+        p_n = d_sample.div(s, axis=0)
+        d_sample = p_n * s.mean()
+    # melt d_sample data
+    ms1_data = d_sample.reset_index().melt(id_vars='lcmsrun_observed',var_name='node_id',value_name='peak_area')
+    ms1_data['node_id'] = ms1_data['node_id'].astype(str)
+
     # merge in sample category
     cols = ['filename','sample_category']
     df = pd.merge(ms1_data,files_data[cols],left_on='lcmsrun_observed',right_on='filename',how='inner')
@@ -47,7 +58,7 @@ def do_basic_stats(ms1_data, files_data, my_groups,normalize=False):
     df.drop(columns=['filename'],inplace=True)
 
     
-    # calcualte group values
+    # calculate group values
     df_agg = df.groupby(['node_id','sample_category'])['peak_area'].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
     df_agg.columns = ['node_id','sample_category', 'mean', 'median', 'std_dev', 'standard_error']
     df_agg = pd.pivot_table(df_agg,index='node_id',values=['mean','median','std_dev','standard_error'],columns=['sample_category'])
