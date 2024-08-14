@@ -2,6 +2,8 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
 import os
 import sys
 import glob
@@ -434,6 +436,19 @@ def agg_func(x):
         'negative_count': count_neg
     }])
 
+
+def generate_set_cover_figs(ms1_data, ms2_data, plot_output_dir='.'):
+    with PdfPages(os.path.join(plot_output_dir, 'set_cover_results.pdf')) as pdf:
+        make_set_coverage_results(ms1_data, 'ms1', plot_output_dir=plot_output_dir, pdf=pdf)
+        make_set_coverage_results(ms2_data, 'ms2', plot_output_dir=plot_output_dir, pdf=pdf)
+
+def generate_compound_class_figs(output_data, files_group1_name, files_group2_name, max_pval=0.05, plot_output_dir='.'):
+
+    with PdfPages(os.path.join(plot_output_dir, 'class_results.pdf')) as pdf:
+        for c in ['class_results', 'superclass_results', 'pathway_results']:
+            for p in ['_propagated', '']:
+                make_compound_class_analysis(output_data, files_group1_name, files_group2_name, 
+                                            class_column=c+p, max_pvalue=max_pval, plot_output_dir=plot_output_dir, pdf=pdf)
 
 def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.', pdf=None):
     idx = (pd.notna(df[class_column])) & (df['p_value'] < max_pvalue)

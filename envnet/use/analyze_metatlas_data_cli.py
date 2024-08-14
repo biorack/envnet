@@ -1,4 +1,5 @@
 import sys
+import os
 import pandas as pd
 import networkx as nx
 import argparse
@@ -37,6 +38,7 @@ def arg_parser(parser=None):
     return parser
 
 
+
 def main(args):
     
     output_filename = 'output_group1-vs-group2.csv'
@@ -72,7 +74,8 @@ def main(args):
     
     ms1_data.to_csv('all_ms1_data.csv')
     ms2_data.to_csv('all_ms2_data.csv')
-    
+    at.generate_compound_class_figs(output_df, args.files_group1_name, args.files_group2_name)
+    at.generate_set_cover_figs(ms1_data, ms2_data)
 
 if __name__ == '__main__':
     parser = arg_parser()
