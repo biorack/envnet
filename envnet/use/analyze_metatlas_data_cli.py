@@ -19,6 +19,7 @@ def arg_parser(parser=None):
     parser.add_argument('-2fn', '--files_group2_name', type=str, action='store', required=True)
     
     parser.add_argument('-exn', '--exp_name', type=str, action='store', required=False)
+    parser.add_argument('-ni', '--normalize_intensities', type=bool, action='store', required=False)
     
     # analysis paramter options
     analysis_parameters = parser.add_argument_group()
@@ -36,7 +37,6 @@ def arg_parser(parser=None):
     analysis_parameters.add_argument('-mmm', '--msms_matches_min', type=int, action='store', default=3, required=False)
 
     return parser
-
 
 
 def main(args):
@@ -67,15 +67,13 @@ def main(args):
     ms2_data = pd.concat(ms2_data)
     max_ms2_data = at.get_best_ms2_rawdata(ms2_data)
     best_hits = at.get_best_ms1_ms2_combined(max_ms1_data, max_ms2_data)
-    stats_df = at.do_basic_stats(ms1_data, files_data, my_groups)
+    stats_df = at.do_basic_stats(ms1_data, files_data, my_groups, normalize=args.normalize_intensities)
     output_df = at.make_output_df(node_data, best_hits, stats_df, filename=output_filename)
     
     at.annotate_graphml(output_df, node_data)
     
     ms1_data.to_csv('all_ms1_data.csv')
     ms2_data.to_csv('all_ms2_data.csv')
-    at.generate_compound_class_figs(output_df, args.files_group1_name, args.files_group2_name)
-    at.generate_set_cover_figs(ms1_data, ms2_data)
 
 if __name__ == '__main__':
     parser = arg_parser()

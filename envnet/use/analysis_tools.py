@@ -437,12 +437,24 @@ def agg_func(x):
     }])
 
 
+def _read_df(df):
+    if isinstance(df, pd.DataFrame):
+        return df
+    elif isinstance(df, str):
+        return pd.read_csv(df)
+    else:
+        raise Exception('Invalid input dtype. Must be str (path to DataFrame) or DataFrame')
+
 def generate_set_cover_figs(ms1_data, ms2_data, plot_output_dir='.'):
+    ms1_data = _read_df(ms1_data)
+    ms2_data = _read_df(ms2_data)
+
     with PdfPages(os.path.join(plot_output_dir, 'set_cover_results.pdf')) as pdf:
         make_set_coverage_results(ms1_data, 'ms1', plot_output_dir=plot_output_dir, pdf=pdf)
         make_set_coverage_results(ms2_data, 'ms2', plot_output_dir=plot_output_dir, pdf=pdf)
 
 def generate_compound_class_figs(output_data, files_group1_name, files_group2_name, max_pval=0.05, plot_output_dir='.'):
+    output_data = _read_df(output_data)
 
     with PdfPages(os.path.join(plot_output_dir, 'class_results.pdf')) as pdf:
         for c in ['class_results', 'superclass_results', 'pathway_results']:
