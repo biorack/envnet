@@ -92,7 +92,7 @@ def do_basic_stats(ms1_data, files_data, my_groups,normalize=True):
 
 
 def graph_to_df(filename='envnet.graphml',feature='nodes') -> pd.DataFrame:
-    G = nx.read_graphml(os.path.join(module_path, 'data/%s'%filename))
+    G = nx.read_graphml(os.path.join(module_path, 'data','%s'%filename))
     if feature=='nodes':
         node_data = dict(G.nodes(data=True))
         node_data = pd.DataFrame(node_data).T
@@ -106,9 +106,9 @@ def graph_to_df(filename='envnet.graphml',feature='nodes') -> pd.DataFrame:
 
 def merge_spectral_data(node_data: pd.DataFrame,filename_str='envnet') -> pd.DataFrame:
     
-    original_spectra = blink.open_msms_file(os.path.join(module_path, 'data/%s_original_spectra.mgf'%filename_str))
+    original_spectra = blink.open_msms_file(os.path.join(module_path, 'data','%s_original_spectra.mgf'%filename_str))
     print(original_spectra.shape)
-    nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data/%s_mdm_spectra.mgf'%filename_str))
+    nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data','%s_mdm_spectra.mgf'%filename_str))
     print(nl_spectra.shape)
 
         
@@ -264,25 +264,29 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
     for file in tqdm(sample_files, unit='file'):
         if file.endswith('parquet'):
             file = file.replace('.parquet','.h5')
-    
-        node_atlas.sort_values('mz',inplace=True)
-        node_atlas['ppm_tolerance'] = mz_ppm_tolerance
-        node_atlas['extra_time'] = 0
-        node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
-                                             stepsize=mz_ppm_tolerance,
-                                             do_ppm=True)
-        
-        if file.endswith('mzML') or file.endswith('mzml'):
-            d = ft.get_atlas_data_from_mzml(file, node_atlas, desired_key='ms1_neg')
-        elif file.endswith('h5'):
-            d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
-        else:
-            raise Exception('unrecognized file type')
-        
-        d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
-        # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
-        d['lcmsrun_observed'] = file
-        ms1_data.append(d)
+        try:
+            node_atlas.sort_values('mz',inplace=True)
+            node_atlas['ppm_tolerance'] = mz_ppm_tolerance
+            node_atlas['extra_time'] = 0
+            node_atlas['group_index'] = ft.group_consecutive(node_atlas['mz'].values[:],
+                                                stepsize=mz_ppm_tolerance,
+                                                do_ppm=True)
+            
+            if file.endswith('mzML') or file.endswith('mzml'):
+                d = ft.get_atlas_data_from_mzml(file, node_atlas, desired_key='ms1_neg')
+            elif file.endswith('h5'):
+                d = ft.get_atlas_data_from_file(file,node_atlas,desired_key='ms1_neg')
+            else:
+                raise Exception('unrecognized file type')
+            
+            d = d[d['in_feature']==True].groupby('label').apply(calculate_ms1_summary).reset_index()
+            # d = ft.calculate_ms1_summary(d, feature_filter=True).reset_index(drop=True)
+            d['lcmsrun_observed'] = file
+            ms1_data.append(d)
+        except Exception as e:
+            print('Error in file:',file)
+            print(e)
+            continue
     ms1_data = pd.concat(ms1_data)
     ms1_data = ms1_data[ms1_data['peak_height']>peak_height_min]
     ms1_data = ms1_data[ms1_data['num_datapoints']>num_datapoints_min]

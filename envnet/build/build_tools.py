@@ -31,14 +31,16 @@ import blink
 # temp['mod_spectrum'] = temp.apply(lambda x: x.T)
 # temp = temp['mod_spectrum'].to_dict()
 
+mdm_masses = pd.read_csv(os.path.join(module_path,'data','mdm_neutral_losses.csv'))
+mdm_masses = mdm_masses['mass'].to_list()
 
 def do_remblink_networking(query,ref,
-                           mass_diffs=[0, 14.0157, 12.000, 15.9949, 2.01565, 27.9949, 26.0157, 18.0106, 30.0106, 42.0106, 1.9792, 17.00284, 24.000, 13.97925, 1.00794, 40.0313],
+                           mass_diffs=mdm_masses,
                            spectra_attr='msv'):
     polarity = 'negative'
     # import pickle as pickle
     from joblib import load
-    model_file = '/global/homes/b/bpb/repos/blink/models/mdm_negative_random_forest.joblib'
+    model_file = os.path.join(module_path,'data','mdm_negative_random_forest.joblib')
     if not os.path.isfile(model_file):
         model_file = '/global/homes/b/bpb/repos/blink/models/{}_random_forest.joblib'.format(polarity)
     print('Using %s'%model_file)
@@ -167,11 +169,12 @@ def blink_score(query, #this has both the original and neutral loss spectra
     polarity = 'negative'
     # import pickle as pickle
     from joblib import load
-
-    with open('/global/homes/b/bpb/repos/blink/models/{}_random_forest.joblib'.format(polarity), 'rb') as out:
+    
+    # use this
+    mdm_rem = os.path.join(module_path,'data','mdm_negative_random_forest.joblib')
+    with open(mdm_rem, 'rb') as out:
         regressor = load(out)
-
-    mass_diffs = [0, 14.0157, 12.000, 15.9949, 2.01565, 27.9949, 26.0157, 18.0106, 30.0106, 42.0106, 1.9792, 17.00284, 24.000, 13.97925, 1.00794, 40.0313]#, 43.993]
+    mass_diffs = mdm_masses
 
     print('Calculating REM-BLINK on Neutral Loss Spectra')
     d_specs = blink.discretize_spectra(query_spec_nl,  ref_spec_nl, query_pmz, ref_pmz_nl, intensity_power=0.5, bin_width=0.001, tolerance=0.01,network_score=True,mass_diffs=mass_diffs)
