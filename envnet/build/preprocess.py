@@ -28,6 +28,7 @@ sys.path.insert(2,os.path.join(module_path,'blink'))
 import blink as blink
 from metatlas.io import feature_tools as ft
 
+RT_PRECISION = 6
                             
 def run_workflow(f,
                  deltas,
@@ -110,20 +111,21 @@ def build_spectra_dataframe(f,deltas,
                             fraction_required=3,
                             do_parallel=True,
                             max_cores=15,
-                            filter_percent=0.001,
+                            filter_percent=0.0001,
                             min_rt=1,
                             max_rt=7):
     ms2_df = group_ms2file_spectra(f,deltas,isolation_tol=isolation_tol,mz_tol=mz_tol,do_parallel=True,fraction_required=fraction_required,min_rt=min_rt,max_rt=max_rt)
+
     if ms2_df is None:
         return None
     ms2_df['filename'] = f
-    orig_spectra = get_original_spectra(f,filter_percent=0.001)
+    orig_spectra = get_original_spectra(f,filter_percent=filter_percent)
 
     orig_spectra['rt'] = orig_spectra['rt'].astype(float)
-    orig_spectra['rt'] = orig_spectra['rt'].round(3)
+    orig_spectra['rt'] = orig_spectra['rt'].round(RT_PRECISION)
 
     ms2_df['rt'] = ms2_df['rt'].astype(float)
-    ms2_df['rt'] = ms2_df['rt'].round(3)
+    ms2_df['rt'] = ms2_df['rt'].round(RT_PRECISION)
     ms2_df = pd.merge(ms2_df,orig_spectra.add_prefix('original_'),left_on=['filename','rt'],right_on=['original_filename','original_rt'],how='left')
     cols = ['original_rt','original_precursor_mz','original_precursor_intensity','original_filename']
     ms2_df.drop(columns=cols,inplace=True)
@@ -215,7 +217,7 @@ def calc_blink_all_by_all(df,spectrum_key='spectrum',precursor_mz_key='precursor
     out_df = out_df[out_df['query']<out_df['ref']]
     return out_df
 
-def group_duplicates(df,group_col,make_string=False,precision={'i':0,'mz':4,'rt':2}):
+def group_duplicates(df,group_col,make_string=False,precision={'i':3,'mz':5,'rt':RT_PRECISION}):
     """
     takes in a list of grouping columns and turns the rest into arrays
     """
@@ -384,7 +386,7 @@ def nl_builder(ele_deltas,max_allowed=4):
     new_deltas = group_dict_by_value(new_deltas)
     return new_deltas
 
-def filter_spectra_by_percent(x,p=0.01):
+def filter_spectra_by_percent(x,p=0.001):
     # Find the maximum intensity value
     max_intensity = np.max(x[1])
 
@@ -400,7 +402,7 @@ def filter_spectra_by_percent(x,p=0.01):
     return filtered_array
 
 
-def get_original_spectra(f,file_key='ms2_neg',filter_percent=0.01):
+def get_original_spectra(f,file_key='ms2_neg',filter_percent=0.001):
     
     if f.endswith('h5'):
         ref = pd.read_hdf(f, file_key)
@@ -411,7 +413,7 @@ def get_original_spectra(f,file_key='ms2_neg',filter_percent=0.01):
     ref.drop(columns=['collision_energy'],inplace=True)
     ref = ref[pd.notna(ref['precursor_mz'])]
     # query = query[query['i']>1e4]
-    ref = group_duplicates(ref,'rt',make_string=False,precision={'i':0,'mz':4,'rt':2})
+    ref = group_duplicates(ref,'rt',make_string=False,precision={'i':3,'mz':5,'rt':RT_PRECISION})
     ref['precursor_intensity'] = ref['precursor_intensity'].apply(lambda x: x[0])
     ref['precursor_mz'] = ref['precursor_mz'].apply(lambda x: x[0])
     ref['spectrum'] = ref.apply(lambda x: np.asarray([x['mz'],x['i']]),axis=1)

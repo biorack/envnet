@@ -31,8 +31,8 @@ import blink
 # temp['mod_spectrum'] = temp.apply(lambda x: x.T)
 # temp = temp['mod_spectrum'].to_dict()
 
-mdm_masses = pd.read_csv(os.path.join(module_path,'data','mdm_neutral_losses.csv'))
-mdm_masses = mdm_masses['mass'].to_list()
+mdm_df = pd.read_csv(os.path.join(module_path,'data','mdm_neutral_losses.csv'))
+mdm_masses = [0] + mdm_df['mass'].to_list()
 
 def do_remblink_networking(query,ref,
                            mass_diffs=mdm_masses,

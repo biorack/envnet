@@ -105,12 +105,8 @@ def graph_to_df(filename='envnet.graphml',feature='nodes') -> pd.DataFrame:
 
 
 def merge_spectral_data(node_data: pd.DataFrame,filename_str='envnet') -> pd.DataFrame:
-    
     original_spectra = blink.open_msms_file(os.path.join(module_path, 'data','%s_original_spectra.mgf'%filename_str))
-    print(original_spectra.shape)
     nl_spectra = blink.open_msms_file(os.path.join(module_path, 'data','%s_mdm_spectra.mgf'%filename_str))
-    print(nl_spectra.shape)
-
         
     original_spectra['node_id'] = original_spectra['original_id'].apply(lambda x: str(float(x)))
     nl_spectra['node_id'] = nl_spectra['original_id'].apply(lambda x: str(float(x)))
@@ -118,8 +114,8 @@ def merge_spectral_data(node_data: pd.DataFrame,filename_str='envnet') -> pd.Dat
     original_spectra.rename(columns={c: c+'_original_spectra' for c in original_spectra.columns if c not in ['node_id']}, inplace=True)
     nl_spectra.rename(columns={c: c+'_nl_spectra' for c in nl_spectra.columns if c not in ['node_id']}, inplace=True)
     
-    merged_node_data = pd.merge(node_data, original_spectra, on='node_id')
-    merged_node_data = pd.merge(merged_node_data, nl_spectra, on='node_id')
+    merged_node_data = pd.merge(node_data, original_spectra, on='node_id',how='inner')
+    merged_node_data = pd.merge(merged_node_data, nl_spectra, on='node_id',how='inner')
     
     return merged_node_data
 
