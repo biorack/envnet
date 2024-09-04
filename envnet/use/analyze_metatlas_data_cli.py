@@ -19,7 +19,8 @@ def arg_parser(parser=None):
     parser.add_argument('-2fn', '--files_group2_name', type=str, action='store', required=True)
     
     parser.add_argument('-exn', '--exp_name', type=str, action='store', required=False)
-    parser.add_argument('-ni', '--normalize_intensities', type=bool, action='store', required=False)
+    parser.add_argument('-ni', '--normalize_intensities', type=int, action='store', required=False)
+    parser.add_argument('-pv', '--peak_value', type=str, action='store', required=False)
     
     # analysis paramter options
     analysis_parameters = parser.add_argument_group()
@@ -62,12 +63,12 @@ def main(args):
     files_data = pd.DataFrame({'filename': grouped_files.keys(), 'sample_category': grouped_files.values()})
     
     ms1_data = at.get_sample_ms1_data(node_atlas, files, args.mz_tol, args.pk_height_min, args.num_data_min)
-    max_ms1_data = at.get_best_ms1_rawdata(ms1_data, node_data)
+    max_ms1_data = at.get_best_ms1_rawdata(ms1_data, node_data, peak_value=args.peak_value)
     ms2_data = at.get_sample_ms2_data(files, merged_node_data, args.msms_score_min, args.msms_matches_min, args.mz_tol, args.frag_mz_tol)
     ms2_data = pd.concat(ms2_data)
     max_ms2_data = at.get_best_ms2_rawdata(ms2_data)
     best_hits = at.get_best_ms1_ms2_combined(max_ms1_data, max_ms2_data)
-    stats_df = at.do_basic_stats(ms1_data, files_data, my_groups, normalize=args.normalize_intensities)
+    stats_df = at.do_basic_stats(ms1_data, files_data, my_groups, normalize=args.normalize_intensities, peak_value=args.peak_value)
     output_df = at.make_output_df(node_data, best_hits, stats_df, filename=output_filename)
     
     at.annotate_graphml(output_df, node_data)

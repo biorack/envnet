@@ -29,28 +29,30 @@ from envnet.build.preprocess import run_workflow
 
 
 def make_output_df(node_data,best_hits,stats_df,filename='output.csv'):
-    output = node_data.copy()
-    output.set_index('node_id',inplace=True)
-    output = output.join(best_hits.set_index('node_id'),rsuffix='_best_hit',how='left')
+    output = node_data.copy().add_prefix('envnet_')
+    output.set_index('envnet_node_id',inplace=True)
+    best_hits.rename(columns={'node_id': 'envnet_node_id'}, inplace=True)
+    output = output.join(best_hits.set_index('envnet_node_id'),rsuffix='_best_hit', how='left')
     output = output.join(stats_df,rsuffix='_stats',how='left')
     output.to_csv(filename)
     return output
 
 
-def do_basic_stats(ms1_data, files_data, my_groups,normalize=True):
+def do_basic_stats(ms1_data, files_data, my_groups, normalize=True, peak_value='peak_area'):
+    assert peak_value=='peak_area' or peak_value=='peak_height'
     if type(my_groups)==dict:
         my_groups = [my_groups['control'],my_groups['treatment']]
     if 'sample_category' not in files_data.columns:
         return None
     
     # normalize the data
-    d_sample = ms1_data.pivot_table(columns='node_id',index=['lcmsrun_observed'],values='peak_area',aggfunc='mean',fill_value=0)
+    d_sample = ms1_data.pivot_table(columns='node_id',index=['lcmsrun_observed'],values=peak_value,aggfunc='mean',fill_value=0)
     if normalize==True:
         s = d_sample.sum(axis=1)
         p_n = d_sample.div(s, axis=0)
         d_sample = p_n * s.mean()
     # melt d_sample data
-    ms1_data = d_sample.reset_index().melt(id_vars='lcmsrun_observed',var_name='node_id',value_name='peak_area')
+    ms1_data = d_sample.reset_index().melt(id_vars='lcmsrun_observed',var_name='node_id',value_name=peak_value)
     ms1_data['node_id'] = ms1_data['node_id'].astype(str)
 
     # merge in sample category
@@ -61,13 +63,13 @@ def do_basic_stats(ms1_data, files_data, my_groups,normalize=True):
 
     
     # calculate group values
-    df_agg = df.groupby(['node_id','sample_category'])['peak_area'].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
+    df_agg = df.groupby(['node_id','sample_category'])[peak_value].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
     df_agg.columns = ['node_id','sample_category', 'mean', 'median', 'std_dev', 'standard_error']
     df_agg = pd.pivot_table(df_agg,index='node_id',values=['mean','median','std_dev','standard_error'],columns=['sample_category'])
     df_agg.columns = df_agg.columns.map('-'.join)
 
     # pivot for easy ttest
-    d_sample = df.pivot_table(columns='node_id',index=['lcmsrun_observed','sample_category'],values='peak_area',aggfunc='mean',fill_value=300)
+    d_sample = df.pivot_table(columns='node_id',index=['lcmsrun_observed','sample_category'],values=peak_value,aggfunc='mean',fill_value=300)
     if normalize==True:
         s = d_sample.sum(axis=1)
         p_n = d_sample.div(s, axis=0)
@@ -88,6 +90,8 @@ def do_basic_stats(ms1_data, files_data, my_groups,normalize=True):
         df_agg['log2_foldchange'] = np.log2((1+df_agg['mean-{}'.format(my_groups[1])] )/ (1+df_agg['mean-{}'.format(my_groups[0])]))
     else:
         df_agg['log2_foldchange'] = 0
+    df_agg['peak_values_normalized'] = bool(normalize)
+    df_agg['peak_value_used'] = peak_value
     return df_agg
 
 
@@ -163,9 +167,10 @@ def make_node_atlas(node_data: pd.DataFrame, rt_range) -> pd.DataFrame:
     return node_atlas
 
 
-def get_best_ms1_rawdata(ms1_data,node_data):
+def get_best_ms1_rawdata(ms1_data, node_data, peak_value='peak_area'):
+    assert peak_value=='peak_area' or peak_value=='peak_height'
     max_ms1_data = ms1_data.copy()
-    max_ms1_data.sort_values('peak_area', ascending=False,inplace=True)
+    max_ms1_data.sort_values(peak_value, ascending=False,inplace=True)
     max_ms1_data.drop_duplicates(subset='node_id',inplace=True)
     max_ms1_data = pd.merge(max_ms1_data, node_data[['node_id', 'precursor_mz']], on='node_id',how='left')
     max_ms1_data['ppm_error'] = max_ms1_data.apply(lambda x: ((x.precursor_mz - x.mz_centroid) / x.precursor_mz) * 1000000, axis=1)
@@ -191,7 +196,7 @@ def get_best_ms1_ms2_combined(max_ms1_data,max_ms2_data):
 def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_min=3,mz_ppm_tolerance=5):
     scores = blink.score_sparse_spectra(discretized_spectra)
     # m = blink.reformat_score_matrix(S12)
-    scores = blink.filter_hits(scores,min_score=msms_score_min,min_matches=msms_matches_min)
+    scores = blink.filter_hits(scores,min_score=msms_score_min,min_matches=msms_matches_min, override_matches=None)
     scores = blink.reformat_score_matrix(scores)
     scores = blink.make_output_df(scores)
     for c in scores.columns:
@@ -209,13 +214,13 @@ def do_blink(discretized_spectra,exp_df,ref_df,msms_score_min=0.7,msms_matches_m
     return scores
 
 def merge_or_nl_blink(nl_blink,or_blink):
-    t = pd.merge(nl_blink.add_suffix('_nl'),or_blink.add_suffix('_or'),left_index=True,right_index=True,how='outer')
-    t['score'] = t[['score_nl','score_or']].apply(lambda x: np.nanmax(x),axis=1)
-    t['best_match_method'] = t[['score_nl','score_or']].idxmax(axis=1)
+    t = pd.merge(nl_blink.add_suffix('_mdm'),or_blink.add_suffix('_or'),left_index=True,right_index=True,how='outer')
+    t['score'] = t[['score_mdm','score_or']].apply(lambda x: np.nanmax(x),axis=1)
+    t['best_match_method'] = t[['score_mdm','score_or']].idxmax(axis=1)
     idx = t['best_match_method']=='score_or'
     t.loc[idx,'matches'] = t.loc[idx,'matches_or']
-    idx = t['best_match_method']=='score_nl'
-    t.loc[idx,'matches'] = t.loc[idx,'matches_nl']
+    idx = t['best_match_method']=='score_mdm'
+    t.loc[idx,'matches'] = t.loc[idx,'matches_mdm']
     cols = ['score','matches','best_match_method']
     t = t[cols]
     t.reset_index(inplace=True,drop=False)
@@ -394,7 +399,7 @@ def query_fasst_peaks(precursor_mz, peaks, database, serverurl="https://fasst.gn
 
 
 def annotate_graphml(output_df, node_data):
-    
+
     G = nx.read_graphml(os.path.join(module_path, 'data/envnet.graphml'))
 
     # get the first node id
@@ -403,7 +408,6 @@ def annotate_graphml(output_df, node_data):
     # get the names of all node attributes
     node_attributes = list(G.nodes[node_id].keys())
 
-    
     for col in output_df:
         if col in node_attributes:
             continue
@@ -412,8 +416,8 @@ def annotate_graphml(output_df, node_data):
             output_df[col].fillna(0, inplace=True)
         else:
             output_df[col].fillna("", inplace=True)
-            
-    new_node_attributes = output_df.drop(columns=node_data.drop(columns=['node_id']).columns).to_dict(orient='index')
+
+    new_node_attributes = output_df.drop(columns=node_data.drop(columns=['node_id']).add_prefix('envnet_').columns).to_dict(orient='index')
     new_node_attributes = {str(k):v for k,v in new_node_attributes.items()}
 
     nx.set_node_attributes(G, new_node_attributes)
@@ -460,7 +464,7 @@ def generate_compound_class_figs(output_data, files_group1_name, files_group2_na
         for c in ['class_results', 'superclass_results', 'pathway_results']:
             for p in ['_propagated', '']:
                 make_compound_class_analysis(output_data, files_group1_name, files_group2_name, 
-                                            class_column=c+p, max_pvalue=max_pval, plot_output_dir=plot_output_dir, pdf=pdf)
+                                            class_column='envnet_'+c+p, max_pvalue=max_pval, plot_output_dir=plot_output_dir, pdf=pdf)
 
 def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.', pdf=None):
     idx = (pd.notna(df[class_column])) & (df['p_value'] < max_pvalue)
