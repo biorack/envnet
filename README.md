@@ -9,3 +9,5 @@ ENVnet allows us to uncover globally distributed molecules with conserved struct
 This repository not only advances our understanding of DOM but also provides a valuable resource for the scientific community to explore the molecular intricacies of Earth's carbon processes.
 
 ENVnet can be used in your custom Python applications, but we highly recommend using the workflow in GNPS2 (http://www.gnps2.org)
+
+![Example Network](/data/cosmograph_screenshot.png?raw=true "Optional Title")
