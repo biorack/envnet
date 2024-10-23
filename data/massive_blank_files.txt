@@ -303,12 +303,6 @@
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000092720/peak/Blanks-neg_mzml/Process_Blank_10_2_neg.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000092720/peak/Blanks-neg_mzml/Process_Blank_1_1_neg.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000092720/peak/Blanks-neg_mzml/Process_Blank_1_2_neg.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/Blank_0.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/PPL_Blank_2_neg.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/PPL_Blank_1_neg.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/Blank_1.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/Blank_2.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000085025/ccms_peak/raw_neg/Blank_3.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000087692/peak/DOM_Interlab-LCMS_Lab19_Neg_MS1_mzML/DOM_Interlab-LCMS_Lab19_Blank_Neg_MS1_rep3.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000087692/peak/DOM_Interlab-LCMS_Lab19_Neg_MS2_mzML/DOM_Interlab-LCMS_Lab19_Blank_Neg_MS2_rep1.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/v01/MSV000087692/ccms_peak/DOM_Interlab-LCMS_Lab19_Neg_MS1_RAW/DOM_Interlab-LCMS_Lab19_Blank_Neg_MS1_rep3.mzML
@@ -713,12 +707,6 @@
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000087935/ccms_peak/raw/NEG_MS1_raw/DOM_Interlab-LCMS_Lab26_SolventBlank_Neg_MS1_rep1.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000087951/ccms_peak/DOM_Interlab-LCMS_Lab1_PPL_blank_Neg_MS2.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000087951/ccms_peak/DOM_Interlab-LCMS_Lab1_PPL_blank_Neg_MS1.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/Blank_0.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/PPL_Blank_2_neg.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/PPL_Blank_1_neg.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/Blank_1.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/Blank_2.mzML
-/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000085025/ccms_peak/raw_neg/Blank_3.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000087692/ccms_peak/DOM_Interlab-LCMS_Lab19_Neg_MS1_RAW/DOM_Interlab-LCMS_Lab19_Blank_Neg_MS1_rep3.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000087692/ccms_peak/DOM_Interlab-LCMS_Lab19_Neg_MS2_RAW/DOM_Interlab-LCMS_Lab19_Blank_Neg_MS2_rep1.mzML
 /global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/massive_blanks/z01/MSV000089688/ccms_peak/raw/NEG_MSMS_raw/DOM_Interlab_LCMS_Lab13_PPLBlank_Neg_MS2_rep3_raw.mzML
