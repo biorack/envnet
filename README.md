@@ -1,6 +1,6 @@
 # Environmental Molecular Network (ENVnet)
 
-Understanding the Complexity of Dissolved Organic Matter with ENVnet
+## Understanding the Complexity of Dissolved Organic Matter with ENVnet
 
 Dissolved organic matter (DOM) is a key component of Earth's carbon cycle, but its intricate chemical makeup has been a challenge to scientists. In our recent journal article, we introduce ENVnet—a comprehensive, mass spectrometry-based molecular network of metabolites designed to demystify the complexity of DOM across a variety of environments.
 
