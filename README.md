@@ -11,3 +11,5 @@ This repository not only advances our understanding of DOM but also provides a v
 ENVnet can be used in your custom Python applications, but we highly recommend using the workflow in GNPS2 (http://www.gnps2.org)
 
 ![Example Network](/data/cosmograph_screenshot.png?raw=true "Optional Title")
+
+Explore [ENVnet here](https://cosmograph.app/run/?data=https://raw.githubusercontent.com/biorack/envnet/main/data/edge_data.csv&source=source&target=target&gravity=0.25&repulsion=1&repulsionTheta=1.15&linkSpring=0.16&linkDistance=10&friction=0.85&renderLabels=true&renderHoveredLabel=true&renderLinks=true&nodeSizeScale=1&linkWidthScale=1&linkArrowsSizeScale=1&nodeSize=size-total%20links&nodeColor=color-total%20links&linkWidth=width-default&linkColor=color-default&)
