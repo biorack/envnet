@@ -7,3 +7,5 @@ Dissolved organic matter (DOM) is a key component of Earth's carbon cycle, but i
 ENVnet allows us to uncover globally distributed molecules with conserved structures, offering fresh insights into DOM's composition. Notably, it highlights the presence of long-lasting carboxylated cyclic molecules that persist in different ecosystems. With ENVnet, researchers can now test hypotheses concerning specific molecular structures involved in DOM cycling and assess potential strategies for climate change mitigation.
 
 This repository not only advances our understanding of DOM but also provides a valuable resource for the scientific community to explore the molecular intricacies of Earth's carbon processes.
+
+ENVnet can be used in your custom Python applications, but we highly recommend using the workflow in GNPS2 (http://www.gnps2.org)
