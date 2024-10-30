@@ -312,10 +312,12 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
                                 delta_mzs,
                                 do_buddy = False,
                                 elminate_duplicate_spectra = False)
-            
-        if data.shape[0] == 0:
+        
+        if data is None:
             continue
-        if not 'mdm_mz_vals' in data.columns:
+        elif data.shape[0] == 0:
+            continue
+        elif not 'mdm_mz_vals' in data.columns:
             continue
         # ms2_data = pd.concat(ms2_data).reset_index(drop=True)
         ms2_data = remove_unnecessary_ms2_data(data,merged_node_data,ppm_filter=mz_ppm_tolerance)
