@@ -4,6 +4,9 @@
 
 Dissolved organic matter (DOM) is a key component of Earth's carbon cycle, but its intricate chemical makeup has been a challenge to scientists. In our recent journal article, we introduce ENVnet—a comprehensive, mass spectrometry-based molecular network of metabolites designed to demystify the complexity of DOM across a variety of environments.
 
+![Example DOM spectrum](/data/DOM-WAVE.png)
+Figure 1. An example spectrum of dissolved organic matter as seen in negative ionization mode with high resolution mass spectrometry.  Tens of thousands of unique ions are resolvable in single spectra from this extremely diverse mixture.  By adapting mass difference matching deconvolution with molecular networking, and developing REM-BLINK, a spectral similarity algorithm optimized for DOM, we overcame the challenge of chimeric MS/MS (data produced from more than one molecule) which limited molecularly resolved analysis of DOM to create ENVnet.
+
 ENVnet allows us to uncover globally distributed molecules with conserved structures, offering fresh insights into DOM's composition. Notably, it highlights the presence of long-lasting carboxylated cyclic molecules that persist in different ecosystems. With ENVnet, researchers can now test hypotheses concerning specific molecular structures involved in DOM cycling and assess potential strategies for climate change mitigation.
 
 This repository not only advances our understanding of DOM but also provides a valuable resource for the scientific community to explore the molecular intricacies of Earth's carbon processes.
