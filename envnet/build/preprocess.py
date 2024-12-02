@@ -271,7 +271,10 @@ def group_duplicates(df,group_col,make_string=False,precision={'i':3,'mz':5,'rt'
 def spectra_agg_func(x):
     d = {}
     d['count'] = x['value'].count()
-    d['precursor_mz'] = sum(x['i']*x['value']) / sum(x['i'])
+    if sum(x['i'])==0:
+        d['precursor_mz'] = 0
+    else:
+        d['precursor_mz'] = sum(x['i']*x['value']) / sum(x['i'])
     idx = np.argsort(x['mz'].values)
     d['nl_spectrum'] = np.asarray([x['mz'].tolist(),x['i'].to_list()])
     d['nl_spectrum'] = d['nl_spectrum'][:,idx]
@@ -337,7 +340,7 @@ def group_ms2file_spectra(file,deltas,isolation_tol=2.5,mz_tol=0.002,file_key='m
         ms2_df = pd.concat(out)
     else:
         return None
-
+    ms2_df = ms2_df[ms2_df['precursor_mz']>0]
     ms2_df.sort_values('precursor_mz',inplace=True)
     ms2_df.reset_index(inplace=True,drop=True)
     
