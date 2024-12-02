@@ -641,7 +641,10 @@ def run_formula_calcs(f):
     
 def calc_dbe(m):
     """
-    D’Andrilli, J., Dittmar, T., Koch, B. P., Purcell, J. M., Marshall, A. G., & Cooper, W. T. (2010). Comprehensive characterization of marine dissolved organic matter by Fourier transform ion cyclotron resonance mass spectrometry with electrospray and atmospheric pressure photoionization. Rapid Communications in Mass Spectrometry, 24(5), 643–650. doi:10.1002/rcm.4421 
+    D’Andrilli, J., Dittmar, T., Koch, B. P., Purcell, J. M., Marshall, A. G., & Cooper, W. T. (2010). 
+    Comprehensive characterization of marine dissolved organic matter by Fourier transform ion 
+    cyclotron resonance mass spectrometry with electrospray and atmospheric pressure photoionization. 
+    Rapid Communications in Mass Spectrometry, 24(5), 643–650. doi:10.1002/rcm.4421 
     """
     dbe = 1 + m['c'] - m['h']/2 + m['n']/2
     return dbe
