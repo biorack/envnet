@@ -312,14 +312,14 @@ def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,
                                 delta_mzs,
                                 do_buddy = False,
                                 elminate_duplicate_spectra = False)
-        
+
         if data is None:
             continue
         elif data.shape[0] == 0:
             continue
         elif not 'mdm_mz_vals' in data.columns:
             continue
-        # ms2_data = pd.concat(ms2_data).reset_index(drop=True)
+
         ms2_data = remove_unnecessary_ms2_data(data,merged_node_data,ppm_filter=mz_ppm_tolerance)
         ms2_data.reset_index(drop=True,inplace=True)
         ms2_data['nl_spectrum'] = ms2_data.apply(lambda x: np.array([x.mdm_mz_vals, x.mdm_i_vals]), axis=1)
@@ -469,6 +469,9 @@ def generate_compound_class_figs(output_data, files_group1_name, files_group2_na
                                             class_column='envnet_'+c+p, max_pvalue=max_pval, plot_output_dir=plot_output_dir, pdf=pdf)
 
 def make_compound_class_analysis(df, inputfiles1_name, inputfiles2_name, class_column='class_results_propagated', max_pvalue=0.05, plot_output_dir='.', pdf=None):
+    if df['p_value'].isnull().all():
+        return 
+    
     idx = (pd.notna(df[class_column])) & (df['p_value'] < max_pvalue)
     g = df[idx].groupby(class_column)['log2_foldchange'].apply(agg_func)
     g = pd.DataFrame(g.tolist(), index=g.index).reset_index(drop=False)
