@@ -2,6 +2,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from msbuddy import read_formula
 from matplotlib.backends.backend_pdf import PdfPages
 
 import os
@@ -61,7 +62,6 @@ def do_basic_stats(ms1_data, files_data, my_groups, normalize=True, peak_value='
     df = df[pd.notna(df['sample_category'])]
     df.drop(columns=['filename'],inplace=True)
 
-    
     # calculate group values
     df_agg = df.groupby(['node_id','sample_category'])[peak_value].agg(['mean', 'median', 'std', lambda x: x.sem()]).reset_index()
     df_agg.columns = ['node_id','sample_category', 'mean', 'median', 'std_dev', 'standard_error']
@@ -295,6 +295,48 @@ def get_sample_ms1_data(node_atlas: pd.DataFrame, sample_files: List[str], mz_pp
     # ms1_data = ms1_data.astype({'label': 'string', 'lcmsrun_observed': 'string'})
     ms1_data.reset_index(inplace=True,drop=True)
     return ms1_data
+
+
+def get_fticr_ms1_data(node_atlas, sample_files, mz_ppm_tolerance, 
+                       files_group1_name, files_group2_name, formula_match):
+    """Collect MS1 data from experimental FTICR data table using node attributes."""
+    assert len(sample_files) == 1, "For FTICR analyses, only one data table can be provided."
+    
+    fticr_table = pd.read_csv(sample_files[0])
+    fticr_table.columns = [col.lower() for col in fticr_table.columns]
+    fticr_table['formula_array'] = fticr_table['formula'].apply(read_formula)
+
+    assert 'm/z' in fticr_table.columns, "Must have 'm/z' column in data table."
+    
+    # make files data table for stats later
+    files_group1 = [col for col in fticr_table.columns if files_group1_name.lower() in col]
+    files_group2 = [col for col in fticr_table.columns if files_group2_name.lower() in col]
+
+    group1_idx = [files_group1_name for i in range(len(files_group1))]
+    group2_idx = [files_group2_name for i in range(len(files_group2))]
+
+    files_data = pd.DataFrame({'filename': files_group1 + files_group2, 'sample_category': group1_idx + group2_idx})
+    
+    ms1_data = []
+    for _, row in node_atlas.iterrows():
+        max_dalton_diff = (mz_ppm_tolerance/1e6) * row.mz
+
+        ms1_hits = fticr_table[fticr_table['m/z'].between(row.mz - max_dalton_diff, row.mz + max_dalton_diff)]
+
+        if formula_match and 'formula' in fticr_table.columns:
+            ms1_hits['formula_match'] = [np.array_equal(formula_array, read_formula(row.predicted_formula)) for formula_array in ms1_hits.formula_array.tolist()]
+            ms1_hits = ms1_hits[ms1_hits['formula_match']]
+
+        if ms1_hits.shape[0] > 0:
+            for _, ms1_hit in ms1_hits.iterrows():
+                for group_col in files_group1 + files_group2:
+                    ms1_data_row = {'node_id': row.label, 'num_datapoints': 1, 'peak_area': ms1_hit[group_col], 'peak_height': ms1_hit[group_col],
+                                    'mz_centroid': ms1_hit['m/z'], 'rt_peak': 0.0, 'lcmsrun_observed': group_col}
+
+                    ms1_data.append(ms1_data_row)
+
+    ms1_data = pd.DataFrame(ms1_data)
+    return ms1_data, files_data
 
 
 def get_sample_ms2_data(sample_files: List[str],merged_node_data,msms_score_min,msms_matches_min,mz_ppm_tolerance,frag_mz_tolerance) -> pd.DataFrame:
