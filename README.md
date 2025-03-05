@@ -1,4 +1,6 @@
 # Environmental Molecular Network (ENVnet)
+<img src="envnet_logo.png" alt="EnvNet Logo" style="background-color: white;">
+
 
 ## Understanding the Complexity of Dissolved Organic Matter with ENVnet
 
