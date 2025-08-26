@@ -1,0 +1,3 @@
+[submodule "external/blink"]
+	path = external/blink
+	url = https://github.com/biorack/blink.git

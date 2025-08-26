@@ -1,0 +1,12 @@
+{
+  "overall_fragment_precision": 0.8726958525345622,
+  "overall_fragment_recall": 0.9439252336448598,
+  "overall_fragment_f1": 0.9069140975755762,
+  "avg_precursor_precision": 1.0,
+  "avg_precursor_recall": 1.0,
+  "avg_precursor_f1": 1.0,
+  "avg_fragment_precision": 0.8724048299001236,
+  "avg_fragment_recall": 0.9439797541474014,
+  "avg_fragment_f1": 0.9054231139451515,
+  "total_groups_tested": 50
+}
