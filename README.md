@@ -95,7 +95,7 @@ Pull requests and issues are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed according to the academic/nonprofit license in this repository.
 
 ## Contact
 
