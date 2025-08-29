@@ -166,8 +166,8 @@ class SpectraClusterer:
         return labels
     
     def eliminate_redundant_spectra(self, all_spectra: pd.DataFrame,
-                                library_matches_deconvoluted: pd.DataFrame,
-                                library_matches_original: pd.DataFrame) -> pd.DataFrame:
+                                    library_matches_deconvoluted: Optional[pd.DataFrame] = None,
+                                    library_matches_original: Optional[pd.DataFrame] = None) -> pd.DataFrame:
         """
         Eliminate redundant spectra by keeping the best one from each cluster.
         """
@@ -176,24 +176,30 @@ class SpectraClusterer:
                         'inchi_key', 'compound_name', 'smiles']
         
         # Handle deconvoluted matches
-        if len(library_matches_deconvoluted) > 0 and all(col in library_matches_deconvoluted.columns for col in expected_cols):
+        if library_matches_deconvoluted is not None and not library_matches_deconvoluted.empty and all(col in library_matches_deconvoluted.columns for col in expected_cols):
             top_matches_deconv = library_matches_deconvoluted[expected_cols].sort_values(
                 'score', ascending=False).drop_duplicates('original_index', keep='first')
             top_matches_deconv['match_type'] = 'deconvoluted'
         else:
             # Create empty dataframe with expected structure
             top_matches_deconv = pd.DataFrame(columns=expected_cols + ['match_type'])
-            print("Warning: No valid deconvoluted library matches found")
+            if library_matches_deconvoluted is None:
+                print("Info: No deconvoluted library matches provided.")
+            else:
+                print("Warning: No valid deconvoluted library matches found")
         
         # Handle original matches
-        if len(library_matches_original) > 0 and all(col in library_matches_original.columns for col in expected_cols):
+        if library_matches_original is not None and not library_matches_original.empty and all(col in library_matches_original.columns for col in expected_cols):
             top_matches_orig = library_matches_original[expected_cols].sort_values(
                 'score', ascending=False).drop_duplicates('original_index', keep='first')
             top_matches_orig['match_type'] = 'original'
         else:
             # Create empty dataframe with expected structure
             top_matches_orig = pd.DataFrame(columns=expected_cols + ['match_type'])
-            print("Warning: No valid original library matches found")
+            if library_matches_original is None:
+                print("Info: No original library matches provided.")
+            else:
+                print("Warning: No valid original library matches found")
         
         # Combine matches (prefer deconvoluted)
         if len(top_matches_deconv) > 0 or len(top_matches_orig) > 0:
@@ -240,8 +246,7 @@ class SpectraClusterer:
             # Priority order:
             # 1. Has library match
             # 2. Highest peak area
-            # 3. Highest peak height
-            # 4. Most MS2 peaks
+
             
             # First, prefer spectra with library matches
             with_matches = group[pd.notna(group['score'])]

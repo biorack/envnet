@@ -246,7 +246,7 @@ def setup_argparse():
     parser.add_argument('--isolation_tol', type=float, default=0.5, help='Isolation tolerance for precursor matching')
     parser.add_argument('--similarity_cutoff', type=float, default=0.8, help='Similarity cutoff for spectral comparison')
     parser.add_argument('--min_intensity_ratio', type=float, default=2.0, help='Minimum intensity ratio threshold')
-    parser.add_argument('--max_rt', type=float, default=7.0, help='Maximum retention time for filtering')
+    parser.add_argument('--max_rt', type=float, default=30.0, help='Maximum retention time for filtering')
     parser.add_argument('--min_rt', type=float, default=1.0, help='Minimum retention time for filtering')
     parser.add_argument('--filter_percent', type=float, default=0.0, help='Intensity filter percentage threshold')
     

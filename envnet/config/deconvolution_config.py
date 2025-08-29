@@ -8,7 +8,7 @@ class DeconvolutionConfig(BaseConfig):
     # Overrides from BaseConfig
     mz_tol: float = 0.01  # More permissive for deconvolution
     min_rt: float = 1.0   # Stricter RT range for deconvolution
-    max_rt: float = 7.0
+    max_rt: float = 30.0
     min_score: float = 0.8  # Higher threshold for deconvolution
     
     # Deconvolution-specific parameters

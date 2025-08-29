@@ -27,10 +27,11 @@ class SpectraLoader:
             # Clean up the dataframe
             file_df.columns = file_df.iloc[0]
             file_df = file_df[1:]
-            file_df['parquet'] = file_df['parquet'].apply(lambda x: x.replace('.parquet', '_deconvoluted.parquet'))
-            
-            if 'h5' not in file_df.columns:
-                file_df['h5'] = file_df['parquet'].str.replace('.parquet', '.h5')
+
+            file_df['parquet'] = file_df['parquet'].apply(lambda x: x.replace('.parquet', '_deconvoluted.parquet') if not '_deconvoluted' in x else x)
+
+            # if 'h5' not in file_df.columns:
+                # file_df['h5'] = file_df['parquet'].str.replace('.parquet', '.h5')
                 
             # Load environmental class information
             envo_name = get_google_sheet(notebook_name='Supplementary Tables', sheet_name='Table 1b')
@@ -45,7 +46,9 @@ class SpectraLoader:
             file_df = file_df[cols]
             found_files = [f for f in file_df['parquet'].tolist() if os.path.exists(f)]
             file_df = file_df[file_df['parquet'].isin(found_files)]
-            
+            print('temporarily dumping files. remove this line when happy')
+            print(file_df.head()['parquet'])
+            file_df.to_csv('my_files.csv', index=False)
             return file_df
         else:
             raise ValueError(f"Unsupported file source: {source}")
