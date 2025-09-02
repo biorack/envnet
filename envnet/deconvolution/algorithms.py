@@ -260,7 +260,11 @@ class DeconvolutionAlgorithms:
         
         # Create deconvoluted spectrum as m/z, intensity array
         d['deconvoluted_spectrum'] = np.asarray([x['mz'], x['i']])
-        
+
+        # Create split deconvoluted spectrum data columns for downstream tasks
+        d['deconvoluted_spectrum_mz_vals'] = np.asarray(x['mz'])
+        d['deconvoluted_spectrum_intensity_vals'] = np.asarray(x['i'])
+
         # Calculate spectral statistics
         d['sum_frag_intensity'] = sum(x['i'])
         d['max_frag_intensity'] = max(x['i'])
