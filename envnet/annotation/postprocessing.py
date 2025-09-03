@@ -26,10 +26,27 @@ class AnnotationPostprocessor:
         Returns:
             pd.DataFrame: Formatted MS1 results
         """
+        # Check if environmental metadata was included in annotation
+        if 'environmental_subclass' in file_metadata.columns and 'name' in file_metadata.columns:
+            metadata_cols = ['h5', 'lcmsrun_observed', 'environmental_subclass', 'name']
+
+            important_cols = [
+                'original_index', 'lcmsrun_observed', 'annotation_method',
+                'mz_centroid', 'rt_peak', 'peak_height', 'peak_area',
+                'num_datapoints', 'environmental_subclass', 'name'
+            ]
+        else:
+            metadata_cols = ['h5', 'lcmsrun_observed']
+
+            important_cols = [
+                'original_index', 'lcmsrun_observed', 'annotation_method',
+                'mz_centroid', 'rt_peak', 'peak_height', 'peak_area',
+                'num_datapoints']
+
         # Add file metadata
         ms1_results = pd.merge(
             ms1_data,
-            file_metadata[['h5', 'lcmsrun_observed', 'environmental_subclass', 'name']],
+            file_metadata[metadata_cols],
             left_on='lcmsrun_observed',
             right_on='lcmsrun_observed',
             how='left'
@@ -37,13 +54,6 @@ class AnnotationPostprocessor:
         # Add annotation type
         ms1_results['annotation_method'] = 'MS1_precursor_match'
         ms1_results['confidence_level'] = 'MS1_match'
-        
-        # Reorder columns
-        important_cols = [
-            'original_index', 'lcmsrun_observed', 'annotation_method',
-            'mz_centroid', 'rt_peak', 'peak_height', 'peak_area',
-            'num_datapoints', 'environmental_subclass', 'name'
-        ]
         
         other_cols = [col for col in ms1_results.columns if col not in important_cols]
         ms1_results = ms1_results[important_cols + other_cols]
@@ -87,7 +97,11 @@ class AnnotationPostprocessor:
             ms2_results['confidence_level'] = ms2_results[score_col].apply(
                 self._assign_confidence_level
             )
-        
+
+        # Remove 2d spectrum columns to avoid errors when saving as a parquet file
+        include_cols = [col for col in ms2_results.columns if col not in ['deconvoluted_spectrum', 'original_spectrum']]
+        ms2_results = ms2_results[include_cols]
+
         return ms2_results
     
     def _assign_confidence_level(self, score: float) -> str:

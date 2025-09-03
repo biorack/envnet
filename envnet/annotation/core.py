@@ -92,10 +92,13 @@ class AnnotationEngine:
         
         # Create node atlas for matching
         node_atlas = self.ms1_matcher.create_node_atlas(self.envnet_data['nodes'])
+
+        # Get experimental file type (All files already known to be same type)
+        file_type = self.experimental_files['original_file_type'].unique()[0]
         
         # Extract MS1 features from experimental files
         ms1_data = self.ms1_matcher.extract_ms1_features(
-            node_atlas, self.experimental_files['h5'].tolist()
+            node_atlas, self.experimental_files[file_type.lower()].tolist()
         )
         
         # Post-process results
@@ -127,9 +130,12 @@ class AnnotationEngine:
             raise ValueError("Must load experimental files first")
             
         print(f"Starting MS2 {spectrum_type} spectra annotation...")
+
+        # Get input file type for potential runtime deconvolution (All files already known to be same type)
+        file_type = self.experimental_files['original_file_type'].unique()[0]
         
         # Load experimental MS2 data
-        ms2_data = self.exp_loader.load_ms2_data(self.experimental_files['parquet'].tolist())
+        ms2_data = self.exp_loader.load_ms2_data(self.experimental_files['parquet'].tolist(), original_file_type=file_type)
         
         # Preprocess MS2 data
         ms2_data = self.preprocessor.filter_ms2_data(ms2_data, self.envnet_data['nodes'])

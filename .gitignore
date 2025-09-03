@@ -6,3 +6,6 @@ __pycache__/
 *$py.class
 
 prompt_*.md
+
+envnet/data/*.mgf
+envnet/data/*.graphml

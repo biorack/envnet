@@ -255,6 +255,10 @@ class LCMSDataProcessor:
         
         # Add basename for easier identification
         df['basename'] = df['filename'].apply(lambda x: os.path.basename(x))
+
+        # Create split original spectrum data columns for downstream tasks
+        df['original_spectrum_mz_vals'] = df['original_spectrum'].apply(lambda spec: spec[0])
+        df['original_spectrum_intensity_vals'] = df['original_spectrum'].apply(lambda spec: spec[1])
         
         return df
 

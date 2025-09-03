@@ -3,15 +3,14 @@ Data loading utilities for ENVnet reference data and experimental data.
 """
 
 import pandas as pd
-import numpy as np
 import networkx as nx
-import os
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from pathlib import Path
 from tqdm import tqdm
 
 from ..config.annotation_config import AnnotationConfig
 from ..vendor.google_sheets import get_google_sheet
+from ..deconvolution.core import LCMSDeconvolutionTools, DeconvolutionConfig
 import blink as blink
 
 
@@ -227,20 +226,48 @@ class ExperimentalDataLoader:
     
     def _load_from_file_list(self, file_list: List[str]) -> pd.DataFrame:
         """Load file metadata from a simple file list."""
-        df = pd.DataFrame({'parquet': file_list})
-        df['h5'] = df['parquet'].str.replace('.parquet', '.h5')
-        df['lcmsrun_observed'] = df['h5'].apply(lambda x: Path(x).stem)
-        return df
+        extensions = {Path(f).suffix for f in file_list}
+        assert len(extensions) == 1, "All files in the input list must have the same extension."
+
+        ext = extensions.pop()
+        if ext not in ['.parquet', '.mzml', '.mzML', '.h5']:
+            raise ValueError(f"Unsupported file extension: '{ext}'")
+
+        input_col = ext.replace(".", "").lower()
+        df = pd.DataFrame({input_col: file_list})
+        df['original_file_type'] = ext.replace(".", "")
+        df['lcmsrun_observed'] = df[input_col].apply(lambda x: Path(x).stem)
+
+        df['parquet'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.parquet")
+        df['h5'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.h5")
+        df['mzml'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.mzML")
+        return df[['original_file_type', 'lcmsrun_observed', 'parquet', 'h5', 'mzml']]
     
     def _load_from_csv(self, csv_file: str) -> pd.DataFrame:
         """Load file metadata from CSV file."""
         return pd.read_csv(csv_file)
     
-    def load_ms2_data(self, parquet_files: List[str]) -> pd.DataFrame:
+    def load_ms2_data(self, parquet_files: List[str], original_file_type:str='parquet') -> pd.DataFrame:
         """Load MS2 data from parquet files."""
         ms2_data = []
         
         for file in tqdm(parquet_files, desc="Loading MS2 data", unit='file'):
+            if not Path(file).is_file():
+                try:
+                    original_file = str(Path(file).with_suffix(f".{original_file_type}"))
+                    config = DeconvolutionConfig()
+                    deconv_tools = LCMSDeconvolutionTools(config)
+                    data = deconv_tools.deconvolute_lcms_file(original_file)
+                    if data is None or data.shape[0] == 0:
+                        continue
+                    if 'deconvoluted_spectrum_mz_vals' not in data.columns:
+                        continue
+                    ms2_data.append(data)
+                    
+                except Exception as e:
+                    print(f'Error deconvoluting {file}: {e}')
+                    continue
+                continue
             try:
                 data = pd.read_parquet(file)
                 if data is None or data.shape[0] == 0:
