@@ -121,7 +121,7 @@ class SpectraClusterer:
                 pmz_diff = abs(np.subtract.outer(precursor_array_i, precursor_array_j))
                 
                 # Apply both conditions
-                idx_ms2similarity = similarity_matrix > self.config.min_score
+                idx_ms2similarity = similarity_matrix > self.config.min_deduplication_score
                 idx_pmz_same = pmz_diff < self.config.mz_tol
                 conditions = idx_pmz_same & idx_ms2similarity
                 
@@ -244,23 +244,29 @@ class SpectraClusterer:
         def select_best_representative(group):
             """Select best spectrum from a duplicate cluster."""
             # Priority order:
-            # 1. Has library match
+            # 1. Has library match (highest score)
             # 2. Highest peak area
+            # 3. Lowest original_index (as a stable tie-breaker)
 
+            # --- ADD THIS SORTING STEP ---
+            # Sort the group to ensure deterministic selection.
+            # This guarantees that if scores or peak areas are tied,
+            # the spectrum with the lowest original_index is always chosen.
+            sort_cols = ['score', 'peak_area']
+            sort_ascending = [False, False]
             
-            # First, prefer spectra with library matches
-            with_matches = group[pd.notna(group['score'])]
-            if len(with_matches) > 0:
-                # Among matched spectra, select highest scoring
-                best_match = with_matches.loc[with_matches['score'].idxmax()]
-                return best_match
+            # Add original_index for tie-breaking
+            sort_cols.append('original_index')
+            sort_ascending.append(True) # Lowest index first
+
+            # Only use columns that exist in the dataframe
+            valid_sort_cols = [c for c in sort_cols if c in group.columns]
+            valid_ascending = [asc for c, asc in zip(sort_cols, sort_ascending) if c in group.columns]
+
+            if valid_sort_cols:
+                group = group.sort_values(by=valid_sort_cols, ascending=valid_ascending)
             
-            # If no library matches, select by peak area
-            if 'peak_area' in group.columns:
-                best_area = group.loc[group['peak_area'].idxmax()]
-                return best_area
-            
-            # Fallback to first entry
+            # Now, the first row is always the best and is deterministically chosen.
             return group.iloc[0]
         
         # Group by duplicate cluster and select representatives

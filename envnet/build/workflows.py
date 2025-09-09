@@ -34,9 +34,9 @@ from .formula_tools import get_formula_props
 class ENVnetWorkflows:
     """High-level workflows for ENVnet construction and analysis."""
     
-    def __init__(self, config: Optional[BuildConfig] = None):
+    def __init__(self, config: BuildConfig):
         """Initialize workflows with configuration."""
-        self.config = config or BuildConfig()
+        self.config = config
         
         # Initialize component modules
         self.data_loader = SpectraLoader(self.config)
@@ -52,8 +52,8 @@ class ENVnetWorkflows:
         self.network: Optional[nx.Graph] = None
         self.library_matches: Dict[str, pd.DataFrame] = {}
         
-    def build_complete_network(self, file_source: str = "google_sheets", 
-                             output_dir: str = "data") -> Dict[str, Union[nx.Graph, pd.DataFrame]]:
+    def build_complete_network(self,
+                               output_dir: str = "data") -> Dict[str, Union[nx.Graph, pd.DataFrame]]:
         """
         Complete end-to-end network building workflow.
         
@@ -66,7 +66,6 @@ class ENVnetWorkflows:
         6. Creates MGF files for SIRIUS
         
         Args:
-            file_source: Source for file metadata ("google_sheets")
             output_dir: Directory for output files
             
         Returns:
@@ -79,7 +78,7 @@ class ENVnetWorkflows:
 
         # Step 1: Load data
         print("\n1. Loading deconvoluted spectra data...")
-        self.all_spectra = self.data_loader.load_all_spectra(file_source=file_source)
+        self.all_spectra = self.data_loader.load_all_spectra()
         print(f"   Loaded {len(self.all_spectra)} spectra from {self.all_spectra['filename'].nunique()} files")
         
         # Step 2: Find library matches

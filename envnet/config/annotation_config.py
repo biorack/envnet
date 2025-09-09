@@ -7,7 +7,7 @@ class AnnotationConfig(BaseConfig):
 
     # Overrides from BaseConfig
     mz_tol: float = 0.01   # More permissive for annotation
-    min_score: float = 0.5  # Lower threshold for annotation flexibility
+    min_library_match_score: float = 0.5  # Lower threshold for annotation flexibility
 
     # Annotation-specific parameters
     min_ms1_datapoints: int = 5  # minimum number of MS1 data points for a feature to be considered

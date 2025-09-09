@@ -144,7 +144,7 @@ def main(args):
         isolation_tolerance=args.isolation_tol,
         max_rt=args.max_rt,
         min_rt=args.min_rt,
-        min_score=args.similarity_cutoff,
+        min_library_match_score=args.min_library_match_score,
         min_intensity_ratio=args.min_intensity_ratio,
         filter_percent=args.filter_percent,
         z_score_threshold=args.z_score_threshold,
@@ -244,7 +244,7 @@ def setup_argparse():
     # Deconvolution parameters
     parser.add_argument('--mz_tol', type=float, default=0.01, help='m/z tolerance for clustering')
     parser.add_argument('--isolation_tol', type=float, default=0.5, help='Isolation tolerance for precursor matching')
-    parser.add_argument('--similarity_cutoff', type=float, default=0.8, help='Similarity cutoff for spectral comparison')
+    parser.add_argument('--min_library_match_score', type=float, default=0.8, help='Similarity cutoff for spectral comparison')
     parser.add_argument('--min_intensity_ratio', type=float, default=2.0, help='Minimum intensity ratio threshold')
     parser.add_argument('--max_rt', type=float, default=30.0, help='Maximum retention time for filtering')
     parser.add_argument('--min_rt', type=float, default=1.0, help='Minimum retention time for filtering')

@@ -19,39 +19,54 @@ class SpectraLoader:
     
     def __init__(self, config: BuildConfig):
         self.config = config
-        
-    def load_file_metadata(self, source: str = "google_sheets") -> pd.DataFrame:
-        """Load file metadata from Google Sheets or other sources."""
-        if source == "google_sheets":
-            file_df = get_google_sheet(notebook_name='Supplementary Tables', sheet_name='Table 1a')
-            # Clean up the dataframe
-            file_df.columns = file_df.iloc[0]
-            file_df = file_df[1:]
 
-            file_df['parquet'] = file_df['parquet'].apply(lambda x: x.replace('.parquet', '_deconvoluted.parquet') if not '_deconvoluted' in x else x)
+    # def load_file_metadata(self) -> pd.DataFrame:
+    #     """Load file metadata from Google Sheets or other sources."""
+    #     print("Loading file metadata...")
+    #     print(f"THIS IS IT: {self.config.file_metadata_source}")
+    #     source = getattr(self.config, 'file_metadata_source', 'google_sheets')
+    #     if source == "google_sheets":
+    #         file_df = get_google_sheet(notebook_name='Supplementary Tables', sheet_name='Table 1a')
+    #         # Clean up the dataframe
+    #         file_df.columns = file_df.iloc[0]
+    #         file_df = file_df[1:]
 
-            # if 'h5' not in file_df.columns:
-                # file_df['h5'] = file_df['parquet'].str.replace('.parquet', '.h5')
+
+    #         # if 'h5' not in file_df.columns:
+    #             # file_df['h5'] = file_df['parquet'].str.replace('.parquet', '.h5')
                 
-            # Load environmental class information
-            envo_name = get_google_sheet(notebook_name='Supplementary Tables', sheet_name='Table 1b')
-            envo_name.columns = envo_name.iloc[0]
-            envo_name = envo_name[1:]
+    #         # Load environmental class information
+    #         envo_name = get_google_sheet(notebook_name='Supplementary Tables', sheet_name='Table 1b')
+    #         envo_name.columns = envo_name.iloc[0]
+    #         envo_name = envo_name[1:]
             
-            file_df = pd.merge(file_df, envo_name[['name', 'id', 'common parent name']], 
-                             left_on='environmental_subclass', right_on='id', how='inner')
+    #         file_df = pd.merge(file_df, envo_name[['name', 'id', 'common parent name']], 
+    #                          left_on='environmental_subclass', right_on='id', how='inner')
             
-            # Filter for existing files
-            cols = ['parquet', 'h5', 'environmental_subclass']
-            file_df = file_df[cols]
-            found_files = [f for f in file_df['parquet'].tolist() if os.path.exists(f)]
-            file_df = file_df[file_df['parquet'].isin(found_files)]
-            print('temporarily dumping files. remove this line when happy')
-            print(file_df.head()['parquet'])
-            file_df.to_csv('my_files.csv', index=False)
-            return file_df
-        else:
-            raise ValueError(f"Unsupported file source: {source}")
+    #         # Filter for existing files
+    #         cols = ['parquet', 'h5', 'environmental_subclass']
+    #         file_df = file_df[cols]
+    #         found_files = [f for f in file_df['parquet'].tolist() if os.path.exists(f)]
+    #         file_df = file_df[file_df['parquet'].isin(found_files)]
+    #         print('temporarily dumping files. remove this line when happy')
+    #         print(file_df.head()['parquet'])
+    #         file_df.to_csv('my_files.csv', index=False)
+    #         return file_df
+    #     elif source == "local_csv":
+    #         # Load from a local CSV file specified in the config
+    #         if self.config.file_metadata_path is None:
+    #             raise ValueError("file_metadata_path must be specified in the config for local_csv source.")
+    #         file_df = pd.read_csv(self.config.file_metadata_path)
+    #         required_cols = ['parquet', 'h5', 'environmental_subclass']
+    #         for col in required_cols:
+    #             if col not in file_df.columns:
+    #                 raise ValueError(f"Column '{col}' must be present in the CSV file.")
+    #         # Filter for existing files
+    #         found_files = [f for f in file_df['parquet'].tolist() if os.path.exists(f)]
+    #         file_df = file_df[file_df['parquet'].isin(found_files)]
+    #         return file_df
+    #     else:
+    #         raise ValueError(f"Unsupported file source: {source}")
     
     def load_single_parquet(self, parquet_file: str) -> Optional[pd.DataFrame]:
         """Load a single parquet file."""
@@ -62,17 +77,19 @@ class SpectraLoader:
             print(f"Error loading {parquet_file}: {e}")
             return None
 
-    def load_all_spectra(self, max_files: Optional[int] = None, file_source: str = "google_sheets") -> pd.DataFrame:
+    def load_all_spectra(self, max_files: Optional[int] = None) -> pd.DataFrame:
         """Load all deconvoluted spectra from multiple files."""
-        # Get file list
-        file_df = self.load_file_metadata(file_source)
-        files = file_df[pd.notna(file_df['parquet'])]['parquet'].tolist()
-        if max_files is not None:
-            files = files[:max_files]
+        
+        if self.config.file_list_df is None:
+            raise ValueError("File list DataFrame not found in the configuration object. Check config initialization.")
+
+        # files = self.config.file_list_df[pd.notna(self.config.file_list_df['parquet'])]['parquet'].tolist()
+        # if max_files is not None:
+            # files = files[:max_files]
         # Load files in parallel
         with multiprocessing.Pool(20) as pool:
-            results = pool.map(self.load_single_parquet, files)
-        
+            results = pool.map(self.load_single_parquet, self.config.file_list_df['parquet'].tolist())
+
         # Combine results
         all_spectra = [r for r in results if r is not None]
         all_spectra = pd.concat(all_spectra, ignore_index=True)

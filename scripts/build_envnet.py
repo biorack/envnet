@@ -139,46 +139,46 @@ def full_build_command(args):
     
     start_time = time.time()
     
-    try:
-        # Load config if provided
-        config = None
-        if args.config:
-            config = BuildConfig.from_file(args.config)
-            print(f"Loaded configuration from: {args.config}")
+    # try:
+    # Load config if provided
+    config = None
+    if args.config:
+        config = BuildConfig.from_file(args.config)
+        print(f"Loaded configuration from: {args.config}")
+    
+    # Run full build
+    builder = build_envnet(
+        config=config,
+        output_dir=args.output,
+        verbose=args.verbose
+    )
+    
+    # Save results
+    output_dir = Path(args.output)
+    builder.save_network(output_dir / "envnet_network.graphml")
+    builder.save_node_data(output_dir / "envnet_node_data.csv")
+    builder.save_library_matches(args.output)
+    
+    # Print summary
+    summary = builder.get_network_summary()
+    elapsed = time.time() - start_time
+    
+    print("\n" + "=" * 60)
+    print("FULL BUILD COMPLETE")
+    print("=" * 60)
+    print(f"Time elapsed: {elapsed:.1f} seconds")
+    print(f"Network nodes: {summary.get('num_nodes', 0)}")
+    print(f"Network edges: {summary.get('num_edges', 0)}")
+    print(f"Connected components: {summary.get('num_connected_components', 0)}")
+    print(f"Results saved to: {output_dir}")
+    
+    return True
         
-        # Run full build
-        builder = build_envnet(
-            config=config,
-            output_dir=args.output,
-            verbose=args.verbose
-        )
-        
-        # Save results
-        output_dir = Path(args.output)
-        builder.save_network(output_dir / "envnet_network.graphml")
-        builder.save_node_data(output_dir / "envnet_node_data.csv")
-        builder.save_library_matches(args.output)
-        
-        # Print summary
-        summary = builder.get_network_summary()
-        elapsed = time.time() - start_time
-        
-        print("\n" + "=" * 60)
-        print("FULL BUILD COMPLETE")
-        print("=" * 60)
-        print(f"Time elapsed: {elapsed:.1f} seconds")
-        print(f"Network nodes: {summary.get('num_nodes', 0)}")
-        print(f"Network edges: {summary.get('num_edges', 0)}")
-        print(f"Connected components: {summary.get('num_connected_components', 0)}")
-        print(f"Results saved to: {output_dir}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"\nERROR in full build: {e}")
-        if args.verbose:
-            traceback.print_exc()
-        return False
+    # except Exception as e:
+    #     print(f"\nERROR in full build: {e}")
+    #     if args.verbose:
+    #         traceback.print_exc()
+    #     return False
 
 def library_matching_command(args):
     """Run library matching analysis."""

@@ -65,7 +65,7 @@ class LibraryMatcher:
         scores = blink.score_sparse_spectra(specs)
         filtered_scores = blink.filter_hits(
             scores, 
-            min_score=self.config.min_score,
+            min_score=self.config.min_library_match_score,
             min_matches=self.config.min_matches,
             override_matches=self.config.override_matches
         )
@@ -83,7 +83,7 @@ class LibraryMatcher:
         
         # Apply filters
         mz_df = mz_df[abs(mz_df['precursor_mz'] - mz_df['precursor_mz_ref']) < self.config.mz_tol]
-        mz_df = mz_df[mz_df['score'] > self.config.min_score]
+        mz_df = mz_df[mz_df['score'] > self.config.min_library_match_score]
         mz_df['matches'] = mz_df['matches'].astype(int)
         mz_df = mz_df[mz_df['matches'] >= self.config.min_matches]
         

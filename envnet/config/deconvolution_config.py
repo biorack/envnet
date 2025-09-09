@@ -9,7 +9,7 @@ class DeconvolutionConfig(BaseConfig):
     mz_tol: float = 0.01  # More permissive for deconvolution
     min_rt: float = 1.0   # Stricter RT range for deconvolution
     max_rt: float = 30.0
-    min_score: float = 0.8  # Higher threshold for deconvolution
+    min_library_match_score: float = 0.8  # Higher threshold for deconvolution
     
     # Deconvolution-specific parameters
     isolation_tolerance: float = 0.5

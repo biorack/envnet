@@ -113,7 +113,7 @@ class MS2Matcher:
         scores = blink.score_sparse_spectra(discretized)
         scores = blink.filter_hits(
             scores,
-            min_score=self.config.min_score,
+            min_score=self.config.min_library_match_score,
             min_matches=self.config.min_matches,
             override_matches=self.config.override_matches
         )

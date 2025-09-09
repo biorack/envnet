@@ -16,24 +16,23 @@
 export PYTHONPATH=/global/homes/b/bpb/repos/envnet
 #export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export PYTHONBINARY=/global/common/software/m2650/msbuddy/bin/python
-export REF_DIR="/global/homes/b/bpb/repos/envnet/results/full_build_20250822_132000"
+export REF_DIR="/global/homes/b/bpb/repos/envnet/results/full_build_20250908_181404"
 
 
-# Create output directory with timestamp
-OUTPUT_DIR="/global/homes/b/bpb/repos/envnet/results/full_env-annotation_$(date +%Y%m%d_%H%M%S)"
-mkdir -p $OUTPUT_DIR
+# # Create output directory with timestamp
+# OUTPUT_DIR="/global/homes/b/bpb/repos/envnet/results/full_env-annotation_$(date +%Y%m%d_%H%M%S)"
+# mkdir -p $OUTPUT_DIR
 
 # Change to scripts directory
 cd /global/homes/b/bpb/repos/envnet/scripts
 
-# Run the full build
 $PYTHONBINARY -m envnet.annotation.workflows ms1 \
-    --output-dir ./ms1_results \
-    --google-sheets \
-    --envnet-graphml $REF_DIR/envnet_network.graphml \
-    --envnet-deconv-mgf $REF_DIR/envnet_deconvoluted_spectra.mgf \
-    --envnet-original-mgf $REF_DIR/envnet_original_spectra.mgf \
-    --spectrum-types deconvoluted original \
-    --min-score 0.6 \
+    --output-dir "$REF_DIR/ms1_results" \
+    --csv-file "$REF_DIR/input_for_annotation.csv" \
+    --envnet-graphml "$REF_DIR/envnet_network.graphml" \
+    --envnet-deconv-mgf "$REF_DIR/envnet_deconvoluted_spectra.mgf" \
+    --envnet-original-mgf "$REF_DIR/envnet_original_spectra.mgf" \
+    --spectrum-types deconvoluted \
+    --min-library-match-score 0.6 \
     --min-matches 3
 

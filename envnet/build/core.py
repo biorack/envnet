@@ -95,7 +95,7 @@ class ENVnetBuilder:
         """Get all stored results."""
         return self._results
     
-    def build_network(self, file_source: str = "google_sheets", 
+    def build_network(self,
                      output_dir: str = "data") -> Dict[str, Union[nx.Graph, pd.DataFrame]]:
         """
         Build complete ENVnet molecular network.
@@ -108,7 +108,6 @@ class ENVnetBuilder:
         5. Creates MGF files for SIRIUS
         
         Args:
-            file_source: Source for loading file metadata
             output_dir: Directory for output files
             
         Returns:
@@ -119,7 +118,7 @@ class ENVnetBuilder:
         
         try:
             # Run complete workflow
-            results = self.workflows.build_complete_network(file_source, output_dir)
+            results = self.workflows.build_complete_network(output_dir)
             
             # Store results
             self._results.update(results)

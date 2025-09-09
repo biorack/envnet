@@ -276,7 +276,7 @@ def main():
                        help='Custom configuration file (JSON)')
     parser.add_argument('--mz-tol', type=float, default=0.01,
                        help='m/z tolerance for matching')
-    parser.add_argument('--min-score', type=float, default=0.5,
+    parser.add_argument('--min-library-match-score', type=float, default=0.5,
                        help='Minimum score for MS2 matches')
     parser.add_argument('--min-matches', type=int, default=3,
                        help='Minimum number of matching peaks for MS2')
@@ -294,7 +294,7 @@ def main():
     else:
         config = AnnotationConfig(
             mz_tol=args.mz_tol, 
-            min_score=args.min_score,
+            min_library_match_score=args.min_library_match_score,
             min_matches=args.min_matches,
             chunk_size=args.chunk_size
         )
@@ -348,7 +348,7 @@ def main():
     else:
         print(f"Original MGF: <module>/data/{args.envnet_mgf_base}_original_spectra.mgf")
     print(f"m/z tolerance: {args.mz_tol}")
-    print(f"Min score: {args.min_score}")
+    print(f"Min score: {args.min_library_match_score}")
     if args.workflow in ['ms2', 'full']:
         print(f"Spectrum types: {args.spectrum_types}")
     print()

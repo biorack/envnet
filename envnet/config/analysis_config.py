@@ -7,7 +7,7 @@ class AnalysisConfig(BaseConfig):
 
     # Overrides from BaseConfig - more permissive for analysis
     mz_tol: float = 0.01   
-    min_score: float = 0.5  
+    min_library_match_score: float = 0.5  
     
     # Analysis-specific parameters
     min_ms1_datapoints: int = 5
