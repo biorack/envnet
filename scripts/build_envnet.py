@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from envnet.build import ENVnetBuilder, build_envnet, quick_envnet
 from envnet.config import BuildConfig
+from envnet.build.workflows import ENVnetWorkflows
 
 #!/usr/bin/env python3
 """
@@ -340,7 +341,12 @@ def main():
     sirius_parser = subparsers.add_parser('sirius', help='Integrate SIRIUS results')
     sirius_parser.add_argument('--sirius-dir', required=True, help='SIRIUS results directory')
     sirius_parser.add_argument('--network-file', required=True, help='Existing network GraphML file')
-    
+    sirius_parser.add_argument(
+        '--output',
+        type=str,
+        default='.',
+        help='Output directory to save the updated network file.'
+    ) 
     # Parse arguments
     args = parser.parse_args()
     

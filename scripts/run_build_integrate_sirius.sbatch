@@ -27,8 +27,7 @@ cd /global/homes/b/bpb/repos/envnet/scripts
 
 
 # Run the full build
-/global/common/software/m2650/msbuddy/bin/python build_envnet.py \
-    --verbose \
+/global/common/software/m2650/msbuddy/bin/python build_envnet.py sirius \
+    --output "$OUTPUT_DIR" \
     --network-file "$OUTPUT_DIR/envnet_network.graphml" \
-    --sirius-dir "$OUTPUT_DIR" \
-    sirius
+    --sirius-dir "$OUTPUT_DIR"

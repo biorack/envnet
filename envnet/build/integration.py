@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
 from ..config.build_config import BuildConfig
 
@@ -111,6 +112,47 @@ class SiriusIntegrator:
         print(f"Created color mapping for {len(class_color_mapping)} compound classes")
         return class_color_mapping
     
+    def _save_class_legend_figure(self, class_colors: Dict[str, str], output_dir: str):
+        """
+        Generates and saves a legend figure as a high-quality PDF.
+
+        Args:
+            class_colors: Dictionary mapping class names to hex color codes.
+            output_dir: The directory where the legend image will be saved.
+        """
+        if not class_colors:
+            print("No class colors provided; skipping legend generation.")
+            return
+
+        # Store original matplotlib settings
+        original_rc_params = plt.rcParams.copy()
+        
+        try:
+            # Set parameters for publication-quality PDF output
+            plt.rcParams['pdf.fonttype'] = 42  # Ensures fonts are embedded as TrueType
+            plt.rcParams['ps.fonttype'] = 42
+            plt.rcParams['font.family'] = 'sans-serif'
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            for class_name, color_hex in class_colors.items():
+                ax.scatter([], [], color=color_hex, label=class_name, s=100)
+            
+            ax.legend(title="SIRIUS Compound Classes", loc="center", frameon=False, fontsize='large', title_fontsize='x-large')
+            ax.axis('off')
+            
+            # Save the figure as a PDF
+            legend_filename = Path(output_dir) / "sirius_class_legend.pdf"
+            plt.savefig(legend_filename, bbox_inches='tight')
+            plt.close(fig)
+            print(f"Saved compound class legend to: {legend_filename}")
+        
+        except Exception as e:
+            print(f"Warning: Could not generate or save legend figure. Error: {e}")
+        
+        finally:
+            # Restore original matplotlib settings to avoid side effects
+            plt.rcParams.update(original_rc_params)
+
     def integrate_predictions(self, network: nx.Graph, sirius_dir: str,
                             class_column: str = 'NPC#class') -> nx.Graph:
         """
@@ -130,7 +172,8 @@ class SiriusIntegrator:
         
         # Create color mapping for compound classes
         class_colors = self.create_compound_class_colors(class_results, class_column)
-        
+        self._save_class_legend_figure(class_colors, sirius_dir)
+
         # Add color information to class results
         class_results['color_compound_class'] = class_results[class_column].map(class_colors)
         class_results['color_compound_class'] = class_results['color_compound_class'].fillna('#FFFFFF')  # White for unmapped
