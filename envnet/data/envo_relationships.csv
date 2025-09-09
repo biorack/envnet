@@ -1,0 +1,23 @@
+name,id,common parent id,common parent name
+agricultural soil,ENVO:00002259,ENVO:00001998,soil
+coastal sea water,ENVO:00002150,ENVO:00002149,sea water
+desert sand,ENVO:00005800,ENVO:00005800,soil
+forest soil,ENVO:00002261,ENVO:00001998,soil
+fresh water,ENVO:00002011,ENVO:00002006,fresh water
+groundwater,ENVO:01001004,ENVO:00002006,fresh water
+humic lake,ENVO:01001021,ENVO:01001021,fresh water
+IHSS Reference Standards,Suwannee River Fulvic Acid Standard II,DOM Standard,IHSS Reference Standards
+IHSS Reference Standards,Suwannee River Fulvic Acid Standard III ,DOM Standard,IHSS Reference Standards
+IHSS Reference Standards,Suwannee River Fulvic Acid Standard III,DOM Standard,IHSS Reference Standards
+IHSS Reference Standards,Suwannee River Fulvic Acid Standard II ,DOM Standard,IHSS Reference Standards
+IHSS Reference Standards,Other humic acid standard,DOM Standard,IHSS Reference Standards
+IHSS Reference Standards,Suwannee River Humic Acid Standard III,DOM Standard,IHSS Reference Standards
+leachate,ENVO:00002141,ENVO:00002006,fresh water
+peat soil,ENVO:00005774,ENVO:00001998,soil
+permafrost,ENVO:00000134,ENVO:00000134,soil
+river water,ENVO:01000599,ENVO:00002006,fresh water
+sea water,ENVO:00002149,ENVO:00002149,sea water
+soil,ENVO:00001998,ENVO:00001998,soil
+stream sediment,ENVO:00002127,ENVO:01000060,fresh water
+tropical forest soil,ENVO:00005778,ENVO:00001998,soil
+vegetable garden soil,ENVO:00005779,ENVO:00001998,soil
