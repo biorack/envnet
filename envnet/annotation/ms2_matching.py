@@ -42,13 +42,14 @@ class MS2Matcher:
             raise ValueError("spectrum_type must be 'deconvoluted' or 'original'")
         
         return self._blink_score_and_filter(
-            ms2_data, ref_spectra, envnet_data['reference_pmzs'],
+            ms2_data, ref_spectra, envnet_data['reference_pmzs'], envnet_data['nodes']['original_index'],
             mz_attr, intensity_attr
         )
     
     def _blink_score_and_filter(self, ms2_data: pd.DataFrame,
                                ref_spectra: List[np.ndarray],
                                ref_pmzs: List[float],
+                                 ref_original_index: List[int],
                                mz_attribute: str,
                                intensity_attribute: str) -> pd.DataFrame:
         """
@@ -87,7 +88,7 @@ class MS2Matcher:
         for i in tqdm(range(len(exp_chunks)), desc="Scoring spectra", unit='chunk'):
             chunk_scores = self._score_chunk(
                 exp_chunks[i], pmz_chunks[i], index_chunks[i],
-                ref_spectra, ref_pmzs
+                ref_spectra, ref_pmzs, ref_original_index
             )
             all_scores.append(chunk_scores)
         
@@ -96,7 +97,8 @@ class MS2Matcher:
     def _score_chunk(self, exp_chunk: List[np.ndarray], 
                     pmz_chunk: List[float], index_chunk: List[int],
                     ref_spectra: List[np.ndarray], 
-                    ref_pmzs: List[float]) -> pd.DataFrame:
+                    ref_pmzs: List[float],
+                    ref_original_index: List[int]) -> pd.DataFrame:
         """Score a chunk of spectra using BLINK."""
         # Discretize spectra
         discretized = blink.discretize_spectra(
@@ -130,12 +132,16 @@ class MS2Matcher:
         
         # Add precursor m/z information
         scores['precursor_mz_query'] = scores['query'].apply(lambda x: pmz_chunk[x])
+        ref_df_temp = pd.DataFrame({'precursor_mz_ref': ref_pmzs,'original_index': ref_original_index})
+        ref_df_temp.reset_index(inplace=True,drop=False)
+        ref_df_temp.rename(columns={'index': 'ref'}, inplace=True)
         scores = pd.merge(
             scores, 
-            pd.DataFrame({'precursor_mz_ref': ref_pmzs}).reset_index().rename(columns={'index': 'ref'}),
+            ref_df_temp,
             on='ref', 
             how='left'
         )
+        scores.rename(columns={'precursor_mz': 'precursor_mz_ref'}, inplace=True)
         
         # Filter by precursor m/z difference
         scores['mz_diff'] = abs(scores['precursor_mz_query'] - scores['precursor_mz_ref'])

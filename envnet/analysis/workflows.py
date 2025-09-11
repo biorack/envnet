@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, Union, List
 import json
+import pandas as pd
 
 from ..config.analysis_config import AnalysisConfig
 from .core import AnalysisEngine

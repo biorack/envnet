@@ -4,7 +4,7 @@ Utility functions for analysis workflows.
 
 import pandas as pd
 import numpy as np
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 
 from ..config.analysis_config import AnalysisConfig
 

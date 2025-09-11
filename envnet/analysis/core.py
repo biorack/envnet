@@ -184,7 +184,9 @@ class AnalysisEngine:
     
     def generate_upset_plot(self, 
                            grouping_column: str = 'specific_environment',
-                           output_file: Optional[str] = None) -> None:
+                           output_file: Optional[str] = None,
+                           fig_width: int = 12,
+                           fig_height: int = 8) -> None:
         """
         Generate UpSet plot showing compound overlap across groups.
         
@@ -196,9 +198,12 @@ class AnalysisEngine:
             raise ValueError("Must prepare analysis data first")
             
         print("Generating UpSet plot...")
-        self.visualizer.create_upset_plot(
-            self.merged_data, grouping_column, output_file
+        fig = self.visualizer.create_upset_plot(
+            self.merged_data, grouping_column, output_file,
+            fig_width=fig_width,
+            fig_height=fig_height
         )
+        return fig
     
     def generate_set_cover_analysis(self, output_dir: Optional[str] = None) -> Dict:
         """

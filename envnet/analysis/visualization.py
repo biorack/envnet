@@ -22,7 +22,9 @@ class AnalysisVisualizer:
     def create_upset_plot(self, 
                          data: pd.DataFrame,
                          grouping_column: str = 'specific_environment',
-                         output_file: Optional[str] = None) -> None:
+                         output_file: Optional[str] = None,
+                         fig_width: float=10,
+                         fig_height: float=6) -> None:
         """
         Create UpSet plot showing compound overlap across groups.
         
@@ -49,14 +51,16 @@ class AnalysisVisualizer:
         upset_data = self._prepare_upset_data(compound_dict)
         
         # Create UpSet plot
+        fig = plt.figure(figsize=(fig_width, fig_height))
         upset = UpSet(upset_data, min_subset_size=self.config.min_upset_subset_size)
-        upset.plot()
-        
+        upset.plot(fig=fig)
+
         if output_file:
             plt.savefig(output_file, dpi=self.config.figure_dpi, bbox_inches='tight')
             plt.close()
         else:
             plt.show()
+        return fig
     
     def _prepare_upset_data(self, compound_dict: Dict) -> pd.Series:
         """Prepare data for UpSet plot."""

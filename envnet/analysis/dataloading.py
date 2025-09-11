@@ -37,9 +37,13 @@ class AnnotationDataLoader:
         """
         data = {}
         
+        ms1_cols = ['original_index','num_datapoints','lcmsrun_observed']
+        ms2_cols_deconvoluted = ['original_index_deconvoluted_match', 'score_deconvoluted_match', 'filename']
+        ms2_cols_original = ['original_index_original_match', 'score_original_match', 'filename']
+
         # Load MS1 data
         if ms1_file and Path(ms1_file).exists():
-            data['ms1'] = pd.read_parquet(ms1_file)
+            data['ms1'] = pd.read_parquet(ms1_file,columns=ms1_cols)
             print(f"Loaded MS1 data: {len(data['ms1'])} records")
         else:
             data['ms1'] = None
@@ -48,11 +52,11 @@ class AnnotationDataLoader:
         # Load MS2 data
         ms2_data = {}
         if ms2_deconv_file and Path(ms2_deconv_file).exists():
-            ms2_data['deconvoluted'] = pd.read_parquet(ms2_deconv_file)
+            ms2_data['deconvoluted'] = pd.read_parquet(ms2_deconv_file, columns=ms2_cols_deconvoluted)
             print(f"Loaded MS2 deconvoluted data: {len(ms2_data['deconvoluted'])} records")
             
         if ms2_original_file and Path(ms2_original_file).exists():
-            ms2_data['original'] = pd.read_parquet(ms2_original_file)
+            ms2_data['original'] = pd.read_parquet(ms2_original_file, columns=ms2_cols_original)
             print(f"Loaded MS2 original data: {len(ms2_data['original'])} records")
             
         data['ms2'] = ms2_data if ms2_data else None
@@ -160,12 +164,19 @@ class AnnotationDataLoader:
         # Filter by MS2 support if required
         if require_ms2_support and ms2_data:
             analysis_data = self._filter_by_ms2_support(analysis_data, ms2_data)
-        
+        # file_metadata.rename(columns={'h5': 'lcmsrun_observed'}, inplace=True)
+        print('analysis columns:', analysis_data.columns.tolist())
+        print('file metadata columns:', file_metadata.columns.tolist())
+        file_metadata['filename'] = file_metadata['h5'].str.replace('.h5', '')
+        print('Analysis filename: ', analysis_data.loc[0,'lcmsrun_observed'])
+        print('File metadata filename: ', file_metadata.loc[0,'filename'])
+        # analysis_data.rename(columns={'lcmsrun_observed': 'filename'}, inplace=True)
         # Merge with file metadata
         if file_metadata is not None:
             analysis_data = pd.merge(
-                analysis_data, file_metadata, 
-                on='lcmsrun_observed', 
+                analysis_data, file_metadata,
+                left_on='lcmsrun_observed',
+                right_on='filename',
                 how='left'
             )
         
@@ -175,9 +186,6 @@ class AnnotationDataLoader:
         """Clean file names for consistency."""
         data = data.copy()
         data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace('.h5', '')
-        data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace(
-            '/global/cfs/cdirs/metatlas/projects/carbon_network/raw_data/', ''
-        )
         return data
     
     def _filter_by_ms2_support(self, ms1_data: pd.DataFrame, 
@@ -191,16 +199,16 @@ class AnnotationDataLoader:
                 # Extract relevant columns
                 if spectrum_type == 'deconvoluted':
                     cols = ['original_index', 'filename']
-                    if 'ref_deconvoluted_match' in ms2_df.columns:
+                    # if 'ref_deconvoluted_match' in ms2_df.columns:
                         # Add original_index from ref column
-                        ms2_df = ms2_df.copy()
-                        ms2_df['original_index'] = ms2_df['ref_deconvoluted_match']
+                    ms2_df = ms2_df.copy()
+                    ms2_df['original_index'] = ms2_df['original_index_deconvoluted_match']
                 elif spectrum_type == 'original':
                     cols = ['original_index', 'filename'] 
-                    if 'ref_original_match' in ms2_df.columns:
-                        ms2_df = ms2_df.copy()
-                        ms2_df['original_index'] = ms2_df['ref_original_match']
-                
+                    # if 'ref_original_match' in ms2_df.columns:
+                    ms2_df = ms2_df.copy()
+                    ms2_df['original_index'] = ms2_df['original_index_original_match']
+
                 if all(col in ms2_df.columns for col in cols):
                     matches_list.append(ms2_df[cols])
         
@@ -213,6 +221,8 @@ class AnnotationDataLoader:
         all_matches.drop_duplicates(inplace=True)
         all_matches['original_index'] = all_matches['original_index'].astype(int)
         
+        all_matches['filename'] = all_matches['filename'].str.replace('.h5', '')
+
         # Filter MS1 data
         original_count = len(ms1_data)
         filtered_data = pd.merge(

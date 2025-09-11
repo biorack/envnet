@@ -145,9 +145,13 @@ class AnnotationEngine:
             ms2_data, self.envnet_data, spectrum_type
         )
         
-        # Post-process results
+        # # Post-process results
         ms2_results = self.postprocessor.format_ms2_results(ms2_results, ms2_data)
-        
+        # if len(ms2_results) > 0:
+        #     ms2_results = self.postprocessor.add_compound_annotations(
+        #         ms2_results, self.envnet_data
+        #     )
+
         # Save results
         if output_file:
             ms2_results.to_parquet(output_file)

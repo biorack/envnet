@@ -356,25 +356,25 @@ def main():
     # Initialize workflow
     workflow = AnnotationWorkflow(config)
     
-    try:
+    # try:
         # Run requested workflow
-        if args.workflow == 'ms1':
-            output_file = workflow.run_ms1_annotation(file_source, args.output_dir, envnet_files)
-            print(f"MS1 annotation results: {output_file}")
-            
-        elif args.workflow == 'ms2':
-            output_files = workflow.run_ms2_annotation(
-                file_source, args.output_dir, args.spectrum_types, envnet_files
-            )
-            print(f"MS2 annotation results: {output_files}")
-            
-        elif args.workflow == 'full':
-            output_files = workflow.run_full_annotation(file_source, args.output_dir, envnet_files)
-            print(f"Full annotation results: {output_files}")
+    if args.workflow == 'ms1':
+        output_file = workflow.run_ms1_annotation(file_source, args.output_dir, envnet_files)
+        print(f"MS1 annotation results: {output_file}")
         
-    except Exception as e:
-        print(f"Error running annotation workflow: {e}")
-        sys.exit(1)
+    elif args.workflow == 'ms2':
+        output_files = workflow.run_ms2_annotation(
+            file_source, args.output_dir, args.spectrum_types, envnet_files
+        )
+        print(f"MS2 annotation results: {output_files}")
+        
+    elif args.workflow == 'full':
+        output_files = workflow.run_full_annotation(file_source, args.output_dir, envnet_files)
+        print(f"Full annotation results: {output_files}")
+    
+    # except Exception as e:
+        # print(f"Error running annotation workflow: {e}")
+        # sys.exit(1)
 
 
 if __name__ == '__main__':
