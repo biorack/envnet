@@ -37,7 +37,7 @@ class AnnotationDataLoader:
         """
         data = {}
         
-        ms1_cols = ['original_index','num_datapoints','lcmsrun_observed']
+        ms1_cols = ['original_index','num_datapoints','rt_peak','peak_height','peak_area','lcmsrun_observed']
         ms2_cols_deconvoluted = ['original_index_deconvoluted_match', 'score_deconvoluted_match', 'filename']
         ms2_cols_original = ['original_index_original_match', 'score_original_match', 'filename']
 
@@ -160,7 +160,6 @@ class AnnotationDataLoader:
         
         # Clean file names
         analysis_data = self._clean_file_names(analysis_data)
-        
         # Filter by MS2 support if required
         if require_ms2_support and ms2_data:
             analysis_data = self._filter_by_ms2_support(analysis_data, ms2_data)
@@ -171,6 +170,8 @@ class AnnotationDataLoader:
         print('Analysis filename: ', analysis_data.loc[0,'lcmsrun_observed'])
         print('File metadata filename: ', file_metadata.loc[0,'filename'])
         # analysis_data.rename(columns={'lcmsrun_observed': 'filename'}, inplace=True)
+        if 'lcmsrun_observed' in file_metadata.columns:
+            file_metadata.drop(columns=['lcmsrun_observed'], inplace=True)
         # Merge with file metadata
         if file_metadata is not None:
             analysis_data = pd.merge(
@@ -179,13 +180,13 @@ class AnnotationDataLoader:
                 right_on='filename',
                 how='left'
             )
-        
         return analysis_data
     
     def _clean_file_names(self, data: pd.DataFrame) -> pd.DataFrame:
         """Clean file names for consistency."""
         data = data.copy()
         data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace('.h5', '')
+        data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace('.mzML', '')
         return data
     
     def _filter_by_ms2_support(self, ms1_data: pd.DataFrame, 
@@ -222,6 +223,7 @@ class AnnotationDataLoader:
         all_matches['original_index'] = all_matches['original_index'].astype(int)
         
         all_matches['filename'] = all_matches['filename'].str.replace('.h5', '')
+        all_matches['filename'] = all_matches['filename'].str.replace('.mzml', '')
 
         # Filter MS1 data
         original_count = len(ms1_data)
@@ -231,6 +233,5 @@ class AnnotationDataLoader:
             right_on=['original_index', 'filename'],
             how='inner'
         )
-        
         print(f"MS2 filtering: {original_count} -> {len(filtered_data)} features")
         return filtered_data

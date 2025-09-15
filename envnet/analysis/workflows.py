@@ -3,6 +3,7 @@ End-to-end analysis workflows and CLI interface.
 """
 
 import argparse
+import traceback
 import sys
 from pathlib import Path
 from typing import Dict, Optional, Union, List
@@ -383,6 +384,7 @@ def main():
             
     except Exception as e:
         print(f"Error running analysis workflow: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
