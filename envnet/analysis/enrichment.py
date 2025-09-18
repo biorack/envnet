@@ -41,7 +41,7 @@ class EnrichmentAnalyzer:
             
         # Merge statistical results with compound classifications
         merged_data = self._merge_with_classifications(stats_results, envnet_data)
-        
+
         # Define class columns to analyze
         class_columns = self._get_class_columns(merged_data)
         
@@ -91,14 +91,14 @@ class EnrichmentAnalyzer:
     def _get_class_columns(self, data: pd.DataFrame) -> List[str]:
         """Get available compound class columns."""
         class_patterns = [
-            'class_results', 'superclass_results', 'pathway_results',
-            'class_results_propagated', 'superclass_results_propagated', 
-            'pathway_results_propagated'
+            "NPC#pathway",
+            "NPC#superclass",
+            "NPC#class"
         ]
         
         available_columns = []
         for pattern in class_patterns:
-            matching_cols = [col for col in data.columns if pattern in col]
+            matching_cols = [col for col in data.columns if pattern == col]
             available_columns.extend(matching_cols)
         
         return available_columns
@@ -118,7 +118,7 @@ class EnrichmentAnalyzer:
             (pd.notna(data[class_column])) & 
             (data['p_value'] < self.config.max_pvalue)
         ]
-        
+
         if len(significant_data) == 0:
             print(f"No significant results for {class_column}")
             return None
@@ -127,9 +127,9 @@ class EnrichmentAnalyzer:
         class_groups = significant_data.groupby(class_column)['log2_foldchange'].apply(
             aggregate_fold_changes
         )
-        
+
         # Convert to DataFrame
-        enrichment_results = pd.DataFrame(class_groups.tolist(), index=class_groups.index)
+        enrichment_results = class_groups.unstack().reset_index().astype({'count': int, 'positive_count': int, 'negative_count': int})
         
         # Filter for classes with at least one significant compound
         enrichment_results = enrichment_results[enrichment_results['positive_count'] >= 1]
@@ -183,7 +183,7 @@ class EnrichmentAnalyzer:
         
         # Formatting
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(results.index)
+        ax.set_yticklabels(results[class_column])
         ax.set_xlabel('Log2 Fold Change')
         ax.set_title(f'Compound Class Enrichment: {class_column}')
         ax.grid(True, alpha=0.3)
