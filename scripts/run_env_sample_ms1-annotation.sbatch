@@ -17,7 +17,7 @@ export PYTHONPATH=/global/homes/b/bpb/repos/envnet
 #export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export PYTHONBINARY=/global/common/software/m2650/msbuddy/bin/python
 export REF_DIR="/global/homes/b/bpb/repos/envnet/results/full_build_20250908_181404"
-
+export OUT_DIR="/pscratch/sd/b/bpb/envnet_annotation_results"
 
 # # Create output directory with timestamp
 # OUTPUT_DIR="/global/homes/b/bpb/repos/envnet/results/full_env-annotation_$(date +%Y%m%d_%H%M%S)"
@@ -27,8 +27,8 @@ export REF_DIR="/global/homes/b/bpb/repos/envnet/results/full_build_20250908_181
 cd /global/homes/b/bpb/repos/envnet/scripts
 
 $PYTHONBINARY -m envnet.annotation.workflows ms1 \
-    --output-dir "$REF_DIR/ms1_results" \
-    --csv-file "$REF_DIR/input_for_annotation.csv" \
+    --output-dir "$OUT_DIR/ms1_results_experiments_for_paper" \
+    --csv-file "/global/homes/b/bpb/repos/envnet/scripts/input_for_ms1-ms2_annotation-experiments-for-paper.csv" \
     --envnet-graphml "$REF_DIR/envnet_network.graphml" \
     --envnet-deconv-mgf "$REF_DIR/envnet_deconvoluted_spectra.mgf" \
     --envnet-original-mgf "$REF_DIR/envnet_original_spectra.mgf" \

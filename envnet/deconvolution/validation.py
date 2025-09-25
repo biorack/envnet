@@ -36,6 +36,11 @@ print(f"Fragment Recall: {summary['overall_fragment_recall']:.4f}")
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+# Configure matplotlib for vector-based PDF text (not rasterized)
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42  # TrueType fonts (searchable text)
+matplotlib.rcParams['ps.fonttype'] = 42   # Also for PostScript output
+matplotlib.rcParams['font.family'] = 'DejaVu Sans'  # Use a standard font
 import os
 from typing import List, Dict, Tuple, Optional
 from pathlib import Path
@@ -259,10 +264,21 @@ class DeconvolutionValidator:
             'original_p2d2_index_original'
         ].unique()
         
-        deconvoluted_precursors = df.loc[
-            pd.notna(df['original_p2d2_index_deconvoluted']), 
-            'original_p2d2_index_deconvoluted'
-        ].unique()
+        # Get precursors that actually formed distinct clusters
+        if deconvoluted_df.empty:
+            deconvoluted_precursors = np.array([])
+        else:
+            # For each cluster, find the most common precursor ID
+            cluster_precursors = []
+            for cluster_id in deconvoluted_df['cluster'].unique():
+                cluster_data = deconvoluted_df[deconvoluted_df['cluster'] == cluster_id]
+                if 'original_p2d2_index' in cluster_data.columns:
+                    precursor_ids = cluster_data['original_p2d2_index'].dropna()
+                    if len(precursor_ids) > 0:
+                        most_common = precursor_ids.mode()
+                        if len(most_common) > 0:
+                            cluster_precursors.append(most_common.iloc[0])
+            deconvoluted_precursors = np.array(cluster_precursors)
         
         tp = len(set(original_precursors) & set(deconvoluted_precursors))
         fp = len(set(deconvoluted_precursors) - set(original_precursors))
@@ -414,7 +430,16 @@ class DeconvolutionValidator:
         frag_recall = frag_tp / (frag_tp + frag_fn) if (frag_tp + frag_fn) > 0 else 0
         frag_f1 = 2 * (frag_precision * frag_recall) / (frag_precision + frag_recall) if (frag_precision + frag_recall) > 0 else 0
         
-        # Average metrics
+        # Overall precursor metrics (same approach as fragments)
+        precursor_tp = results_df['tp'].sum()
+        precursor_fp = results_df['fp'].sum()
+        precursor_fn = results_df['fn'].sum()
+        
+        overall_precursor_precision = precursor_tp / (precursor_tp + precursor_fp) if (precursor_tp + precursor_fp) > 0 else 0
+        overall_precursor_recall = precursor_tp / (precursor_tp + precursor_fn) if (precursor_tp + precursor_fn) > 0 else 0
+        overall_precursor_f1 = 2 * (overall_precursor_precision * overall_precursor_recall) / (overall_precursor_precision + overall_precursor_recall) if (overall_precursor_precision + overall_precursor_recall) > 0 else 0
+        
+        # Average metrics (for comparison)
         avg_precursor_precision = results_df['precision'].mean()
         avg_precursor_recall = results_df['recall'].mean()
         avg_precursor_f1 = results_df['f1_score'].mean()
@@ -427,6 +452,9 @@ class DeconvolutionValidator:
             'overall_fragment_precision': frag_precision,
             'overall_fragment_recall': frag_recall,
             'overall_fragment_f1': frag_f1,
+            'overall_precursor_precision': overall_precursor_precision,
+            'overall_precursor_recall': overall_precursor_recall,
+            'overall_precursor_f1': overall_precursor_f1,
             'avg_precursor_precision': avg_precursor_precision,
             'avg_precursor_recall': avg_precursor_recall,
             'avg_precursor_f1': avg_precursor_f1,
@@ -575,9 +603,43 @@ def main():
     """Main validation execution function."""
     print("Starting LCMS Deconvolution Validation...")
     
-    # Initialize validator
+    # Import necessary modules
+    from pathlib import Path
+    from ..build.reference import load_p2d2_reference_data
+    from ..config import DeconvolutionConfig, BuildConfig
+    
+    # Initialize validator with proper configuration (like in your notebook)
     print("Initializing validator with BuildConfig...")
-    validator = DeconvolutionValidator()
+    
+    # Set up paths
+    PYTHONPATH = "/global/homes/b/bpb/repos/envnet"
+    
+    # 1. Load the MDM neutral loss data required by the p2d2 loader
+    print("Loading MDM neutral loss data...")
+    mdm_path = Path(PYTHONPATH) / "envnet" / "data" / "mdm_neutral_losses.csv"
+    mdm_df = pd.read_csv(mdm_path)
+
+    # 2. Load the P2D2 reference library using the correct function
+    print("Loading P2D2 reference spectral library...")
+    ref_df, _ = load_p2d2_reference_data(deltas=mdm_df)
+
+    # 3. Manually populate the BuildConfig with the loaded P2D2 spectra
+    spectra_path = Path(PYTHONPATH) / "scripts" / "build_files.csv"
+    build_config = BuildConfig(file_metadata_path=str(spectra_path))
+    build_config.ref_spec = ref_df['spectrum'].tolist()
+    build_config.ref_pmz = ref_df['precursor_mz'].tolist()
+    ref_df = ref_df.reset_index().rename(columns={'index': 'ref_spec_index'})
+    build_config.ref_nodes = ref_df
+
+    # 4. Configure deconvolution parameters
+    deconv_config = DeconvolutionConfig(
+        z_score_threshold=2,
+        num_points=3,
+        isolation_tolerance=0.75
+    )
+
+    # 5. Initialize validator with proper configs
+    validator = DeconvolutionValidator(deconv_config=deconv_config, build_config=build_config)
     
     # Create output directory
     output_dir = Path("validation_results")
@@ -606,14 +668,14 @@ def main():
     # Precision/recall histograms
     ValidationPlotter.plot_precision_recall_histograms(
         results_df, 
-        save_path=output_dir / "precision_recall_histograms.png"
+        save_path=output_dir / "precision_recall_histograms.pdf"
     )
     
     # Example validation plots
     ValidationPlotter.plot_validation_examples(
         validator,
         num_examples=8,
-        save_path=output_dir / "validation_examples.png"
+        save_path=output_dir / "validation_examples.pdf"
     )
     
     # Save summary metrics
