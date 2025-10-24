@@ -50,9 +50,9 @@ class AnnotationPreprocessor:
         nearest_indices = interpolator(ms2_data['precursor_mz'].values).astype(int)
         ms2_data['nearest_precursor'] = envnet_mzs[nearest_indices]
         ms2_data['mz_diff'] = abs(ms2_data['nearest_precursor'] - ms2_data['precursor_mz'])
-        
+        ms2_data['mz_diff_ppm'] = (ms2_data['mz_diff'] / ms2_data['precursor_mz']) * 1e6
         # Filter by m/z tolerance
-        ms2_data = ms2_data[ms2_data['mz_diff'] < self.config.mz_tol]
+        ms2_data = ms2_data[ms2_data['mz_diff_ppm'] < self.config.ppm_tolerance]
         ms2_data.reset_index(inplace=True, drop=True)
         
         return ms2_data

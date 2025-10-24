@@ -276,6 +276,8 @@ def main():
                        help='Custom configuration file (JSON)')
     parser.add_argument('--mz-tol', type=float, default=0.01,
                        help='m/z tolerance for matching')
+    parser.add_argument('--ppm-tolerance', type=float, default=10.0,
+                       help='ppm tolerance for matching')
     parser.add_argument('--min-library-match-score', type=float, default=0.5,
                        help='Minimum score for MS2 matches')
     parser.add_argument('--min-matches', type=int, default=3,
@@ -294,6 +296,7 @@ def main():
     else:
         config = AnnotationConfig(
             mz_tol=args.mz_tol, 
+            ppm_tolerance=args.ppm_tolerance,
             min_library_match_score=args.min_library_match_score,
             min_matches=args.min_matches,
             chunk_size=args.chunk_size

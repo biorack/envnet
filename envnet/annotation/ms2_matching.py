@@ -101,10 +101,11 @@ class MS2Matcher:
                     ref_original_index: List[int]) -> pd.DataFrame:
         """Score a chunk of spectra using BLINK."""
         # Discretize spectra
+        approximate_tolerance = self.config.ppm_tolerance * 300.0 / 1e6  # Approximate m/z tolerance at m/z 300
         discretized = blink.discretize_spectra(
             exp_chunk, ref_spectra, pmz_chunk, ref_pmzs,
             bin_width=self.config.bin_width,
-            tolerance=self.config.mz_tol,
+            tolerance=approximate_tolerance,
             intensity_power=self.config.intensity_power,
             trim_empty=False,
             remove_duplicates=False,
@@ -145,7 +146,8 @@ class MS2Matcher:
         
         # Filter by precursor m/z difference
         scores['mz_diff'] = abs(scores['precursor_mz_query'] - scores['precursor_mz_ref'])
-        scores = scores[scores['mz_diff'] < self.config.mz_tol]
+        scores['mz_diff_ppm'] = (scores['mz_diff'] / scores['precursor_mz_query']) * 1e6
+        scores = scores[scores['mz_diff_ppm'] < self.config.ppm_tolerance]
         
         # Map back to original indices
         scores['ms2_data_index'] = scores['query'].apply(lambda x: index_chunk[x])

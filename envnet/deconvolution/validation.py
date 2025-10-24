@@ -40,7 +40,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42  # TrueType fonts (searchable text)
 matplotlib.rcParams['ps.fonttype'] = 42   # Also for PostScript output
-matplotlib.rcParams['font.family'] = 'DejaVu Sans'  # Use a standard font
+# Use matplotlib's default font instead of specifying one that might not exist
+matplotlib.rcParams['font.sans-serif'] = ['DejaVu Sans']#,'Geneva', 'DejaVu Sans', 'Liberation Sans', 'sans-serif']
 import os
 from typing import List, Dict, Tuple, Optional
 from pathlib import Path
@@ -234,94 +235,121 @@ class DeconvolutionValidator:
     
     def calc_precursor_precision_recall(self, 
                                        original_df: pd.DataFrame, 
-                                       deconvoluted_df: pd.DataFrame) -> Dict:
+                                       deconvoluted_df: pd.DataFrame,
+                                       ref_group: pd.DataFrame,
+                                       mz_tolerance: float = 0.01) -> Dict:
         """Calculate precision and recall for precursor and fragment recovery.
         
         Measures both precursor-level and fragment-level accuracy by comparing
-        original vs deconvoluted assignments.
+        original vs deconvoluted assignments using m/z matching.
         
         Args:
             original_df: Original synthetic chimeric spectra
             deconvoluted_df: Results from deconvolution algorithm
+            ref_group: Reference group containing original precursor m/z values
+            mz_tolerance: Tolerance for m/z matching in Daltons
             
         Returns:
             Dictionary containing precision, recall, and F1 scores
         """
-        # Merge original and deconvoluted dataframes
-        df = pd.merge(
-            original_df, 
-            deconvoluted_df,
-            left_index=True, 
-            right_on='ion_index',
-            how='outer', 
-            suffixes=('_original', '_deconvoluted')
-        )
-        df.reset_index(inplace=True, drop=True)
+        # Get original precursor m/z values (ground truth)
+        original_precursor_mz = list(ref_group['precursor_mz'].unique())
         
-        # Calculate precursor-level metrics
-        original_precursors = df.loc[
-            pd.notna(df['original_p2d2_index_original']), 
-            'original_p2d2_index_original'
-        ].unique()
-        
-        # Get precursors that actually formed distinct clusters
+        # Calculate m/z-based precursor metrics
         if deconvoluted_df.empty:
-            deconvoluted_precursors = np.array([])
+            deconvoluted_mz = []
         else:
-            # For each cluster, find the most common precursor ID
-            cluster_precursors = []
-            for cluster_id in deconvoluted_df['cluster'].unique():
-                cluster_data = deconvoluted_df[deconvoluted_df['cluster'] == cluster_id]
-                if 'original_p2d2_index' in cluster_data.columns:
-                    precursor_ids = cluster_data['original_p2d2_index'].dropna()
-                    if len(precursor_ids) > 0:
-                        most_common = precursor_ids.mode()
-                        if len(most_common) > 0:
-                            cluster_precursors.append(most_common.iloc[0])
-            deconvoluted_precursors = np.array(cluster_precursors)
+            # Each cluster represents a recovered precursor - use cluster mean m/z
+            deconvoluted_mz = []
+            if 'cluster' in deconvoluted_df.columns:
+                for cluster_id in deconvoluted_df['cluster'].unique():
+                    cluster_mean_mz = deconvoluted_df[deconvoluted_df['cluster'] == cluster_id]['value'].mean()
+                    deconvoluted_mz.append(cluster_mean_mz)
         
-        tp = len(set(original_precursors) & set(deconvoluted_precursors))
-        fp = len(set(deconvoluted_precursors) - set(original_precursors))
-        fn = len(set(original_precursors) - set(deconvoluted_precursors))
+        # Match deconvoluted m/z to original m/z within tolerance
+        matched_deconvoluted = []
+        matched_original = []
+        
+        for deconv_mz in deconvoluted_mz:
+            for orig_mz in original_precursor_mz:
+                if abs(deconv_mz - orig_mz) <= mz_tolerance:
+                    matched_deconvoluted.append(deconv_mz)
+                    matched_original.append(orig_mz)
+                    break  # Each deconvoluted m/z can only match one original
+        
+        # Calculate precision/recall metrics
+        tp = len(matched_deconvoluted)  # Deconvoluted m/z that match original
+        fp = len(deconvoluted_mz) - len(matched_deconvoluted)  # Deconvoluted m/z with no original match
+        fn = len(original_precursor_mz) - len(matched_original)  # Original m/z with no deconvoluted match
         
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
         
         result = {
-            "original_precursors": original_precursors,
-            "deconvoluted_precursors": deconvoluted_precursors,
+            "original_precursors": original_precursor_mz,
+            "deconvoluted_precursors": deconvoluted_mz,
             "tp": tp, "fp": fp, "fn": fn, "tn": 0,
             "precision": precision, "recall": recall, "f1_score": f1_score
         }
         
-        # Calculate fragment-level metrics
-        g = df.groupby(['rt_deconvoluted', 'cluster'])['original_p2d2_index_deconvoluted'].apply(
-            lambda x: x.mode()[0] if len(x.mode()) > 0 else None
-        )
-        df = pd.merge(
-            df, 
-            g.rename('most_common_p2d2_index'), 
-            left_on=['rt_deconvoluted', 'cluster'], 
-            right_index=True, 
-            how='outer'
-        )
-        
-        df['frag_correct'] = df['original_p2d2_index_deconvoluted'] == df['most_common_p2d2_index']
-        df.loc[pd.isna(df['cluster']), 'frag_correct'] = None
-        
-        frag_tp = (df['frag_correct'] == True).sum()
-        frag_fp = (df['frag_correct'] == False).sum()
-        frag_fn = (df['frag_correct'].isna()).sum()
-        
-        frag_precision = frag_tp / (frag_tp + frag_fp) if (frag_tp + frag_fp) > 0 else 0
-        frag_recall = frag_tp / (frag_tp + frag_fn) if (frag_tp + frag_fn) > 0 else 0
-        frag_f1_score = 2 * (frag_precision * frag_recall) / (frag_precision + frag_recall) if (frag_precision + frag_recall) > 0 else 0
-        
-        result.update({
-            'frag_tp': frag_tp, 'frag_fp': frag_fp, 'frag_fn': frag_fn, 'frag_tn': 0,
-            'frag_precision': frag_precision, 'frag_recall': frag_recall, 'frag_f1_score': frag_f1_score
-        })
+        # Calculate fragment-level metrics (if we have deconvolution results)
+        if not deconvoluted_df.empty and 'cluster' in deconvoluted_df.columns:
+            # Prepare data for fragment-level analysis - use available columns
+            merge_columns = ['mz']
+            if 'i' in deconvoluted_df.columns:
+                merge_columns.append('i')
+            elif 'intensity' in deconvoluted_df.columns:
+                merge_columns.append('intensity')
+            
+            deconv_subset = deconvoluted_df[merge_columns + ['rt', 'cluster', 'original_p2d2_index']].rename(
+                columns={'rt': 'rt_deconvoluted', 'i': 'intensity', 'original_p2d2_index': 'original_p2d2_index_deconvoluted'}
+            )
+            
+            # Match intensity column name in original_df if needed
+            original_merge_cols = ['mz']
+            if 'intensity' in original_df.columns and len(merge_columns) > 1:
+                original_merge_cols.append('intensity')
+            
+            df = original_df.merge(
+                deconv_subset,
+                on=original_merge_cols,
+                how='left'
+            )
+            
+            # Calculate most common p2d2_index for each cluster
+            g = df.groupby(['rt_deconvoluted', 'cluster'])['original_p2d2_index_deconvoluted'].apply(
+                lambda x: x.mode()[0] if len(x.mode()) > 0 else None
+            )
+            df = pd.merge(
+                df, 
+                g.rename('most_common_p2d2_index'), 
+                left_on=['rt_deconvoluted', 'cluster'], 
+                right_index=True, 
+                how='outer'
+            )
+            
+            df['frag_correct'] = df['original_p2d2_index_deconvoluted'] == df['most_common_p2d2_index']
+            df.loc[pd.isna(df['cluster']), 'frag_correct'] = None
+            
+            frag_tp = (df['frag_correct'] == True).sum()
+            frag_fp = (df['frag_correct'] == False).sum()
+            frag_fn = (df['frag_correct'].isna()).sum()
+            
+            frag_precision = frag_tp / (frag_tp + frag_fp) if (frag_tp + frag_fp) > 0 else 0
+            frag_recall = frag_tp / (frag_tp + frag_fn) if (frag_tp + frag_fn) > 0 else 0
+            frag_f1_score = 2 * (frag_precision * frag_recall) / (frag_precision + frag_recall) if (frag_precision + frag_recall) > 0 else 0
+            
+            result.update({
+                'frag_tp': frag_tp, 'frag_fp': frag_fp, 'frag_fn': frag_fn, 'frag_tn': 0,
+                'frag_precision': frag_precision, 'frag_recall': frag_recall, 'frag_f1_score': frag_f1_score
+            })
+        else:
+            # No deconvolution results - all fragments are false negatives
+            result.update({
+                'frag_tp': 0, 'frag_fp': 0, 'frag_fn': len(original_df), 'frag_tn': 0,
+                'frag_precision': 0, 'frag_recall': 0, 'frag_f1_score': 0
+            })
         
         return result
     
@@ -366,7 +394,7 @@ class DeconvolutionValidator:
                 return None
             
             # Calculate precision and recall
-            metrics = self.calc_precursor_precision_recall(original_df, ms2_df)
+            metrics = self.calc_precursor_precision_recall(original_df, ms2_df, ref_group)
             return metrics
             
         except Exception as e:
@@ -476,25 +504,43 @@ class ValidationPlotter:
             results_df: DataFrame containing validation results
             save_path: Optional path to save the figure
         """
+        # Set larger font sizes for journal publication
+        plt.rcParams.update({'font.size': 18})  # Base font size increased
+        
         edges = np.linspace(0, 1, 20)
         fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(12, 8), sharex=True, sharey=True)
         ax = ax.flatten()
         
+        # Panel labels
+        panel_labels = ['a', 'b', 'c', 'd']
+        
         results_df['frag_precision'].hist(bins=edges, ax=ax[0], alpha=0.7)
-        ax[0].set_title('Fragment Ion Assignment Precision')
-        ax[0].set_ylabel('Frequency')
+        ax[0].set_title('Fragment Ion Assignment Precision', fontsize=20)
+        ax[0].set_ylabel('Frequency', fontsize=18)
+        ax[0].text(0.05, 0.95, panel_labels[0], transform=ax[0].transAxes, fontsize=24, 
+                   verticalalignment='top', horizontalalignment='left')
         
         results_df['frag_recall'].hist(bins=edges, ax=ax[1], alpha=0.7)
-        ax[1].set_title('Fragment Ion Assignment Recall')
+        ax[1].set_title('Fragment Ion Assignment Recall', fontsize=20)
+        ax[1].text(0.05, 0.95, panel_labels[1], transform=ax[1].transAxes, fontsize=24, 
+                   verticalalignment='top', horizontalalignment='left')
         
         results_df['precision'].hist(bins=edges, ax=ax[2], alpha=0.7)
-        ax[2].set_title('Precursor Ion Assignment Precision')
-        ax[2].set_xlabel('Score')
-        ax[2].set_ylabel('Frequency')
+        ax[2].set_title('Precursor Ion Assignment Precision', fontsize=20)
+        ax[2].set_xlabel('Score', fontsize=18)
+        ax[2].set_ylabel('Frequency', fontsize=18)
+        ax[2].text(0.05, 0.95, panel_labels[2], transform=ax[2].transAxes, fontsize=24, 
+                   verticalalignment='top', horizontalalignment='left')
         
         results_df['recall'].hist(bins=edges, ax=ax[3], alpha=0.7)
-        ax[3].set_title('Precursor Ion Assignment Recall')
-        ax[3].set_xlabel('Score')
+        ax[3].set_title('Precursor Ion Assignment Recall', fontsize=20)
+        ax[3].set_xlabel('Score', fontsize=18)
+        ax[3].text(0.05, 0.95, panel_labels[3], transform=ax[3].transAxes, fontsize=24, 
+                   verticalalignment='top', horizontalalignment='left')
+        
+        # Increase tick label font size
+        for axis in ax:
+            axis.tick_params(labelsize=16)
         
         plt.tight_layout()
         
@@ -505,13 +551,15 @@ class ValidationPlotter:
     @staticmethod
     def make_validation_plot(deconvoluted_df: pd.DataFrame, 
                             ref_df: pd.DataFrame, 
-                            ax: plt.Axes) -> plt.Figure:
+                            ax: plt.Axes,
+                            panel_label: str = None) -> plt.Figure:
         """Create validation plot showing original vs deconvoluted spectra.
         
         Args:
             deconvoluted_df: DataFrame with deconvolution results
             ref_df: DataFrame with reference spectra
             ax: Matplotlib axes to plot on
+            panel_label: Optional panel label (a, b, c, etc.) for top-right corner
             
         Returns:
             Figure object
@@ -544,6 +592,11 @@ class ValidationPlotter:
         
         ax.plot(x, y, 'k.', alpha=1, label='MDM recovered values')
         
+        # Add panel label in top-left corner if provided
+        if panel_label:
+            ax.text(0.05, 0.95, panel_label, transform=ax.transAxes, fontsize=30, 
+                   verticalalignment='top', horizontalalignment='left')
+        
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
         ax.set_ylabel('Precursor m/z')
         ax.set_xlabel('Fragment m/z')
@@ -552,7 +605,7 @@ class ValidationPlotter:
     
     @staticmethod
     def plot_validation_examples(validator: DeconvolutionValidator, 
-                                num_examples: int = 8, 
+                                num_examples: int = 4, 
                                 save_path: Optional[str] = None):
         """Create example validation plots showing deconvolution performance.
         
@@ -563,9 +616,12 @@ class ValidationPlotter:
         """
         ref_groups = validator.chunk_refs_by_precursor(validator.nl_refs)
         ref_groups = ref_groups[:num_examples]
-        
-        fig, ax = plt.subplots(figsize=(16, 22), ncols=2, nrows=4)
+
+        fig, ax = plt.subplots(figsize=(22, 12), ncols=2, nrows=2)
         ax = ax.flatten()
+        
+        # Panel labels for validation examples
+        panel_labels = ['a', 'b', 'c', 'd']
         
         for i, ref_group in enumerate(ref_groups):
             # Create synthetic chimeric spectrum
@@ -588,8 +644,9 @@ class ValidationPlotter:
             )
             deconvoluted_df.reset_index(inplace=True, drop=True)
             
-            # Create plot
-            ValidationPlotter.make_validation_plot(deconvoluted_df, ref_group, ax[i])
+            # Create plot with panel label
+            panel_label = panel_labels[i] if i < len(panel_labels) else None
+            ValidationPlotter.make_validation_plot(deconvoluted_df, ref_group, ax[i], panel_label)
         
         plt.tight_layout()
         
@@ -674,7 +731,7 @@ def main():
     # Example validation plots
     ValidationPlotter.plot_validation_examples(
         validator,
-        num_examples=8,
+        num_examples=4,
         save_path=output_dir / "validation_examples.pdf"
     )
     

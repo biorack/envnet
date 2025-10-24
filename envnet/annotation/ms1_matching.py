@@ -8,7 +8,7 @@ from typing import List, Dict
 from tqdm import tqdm
 
 from ..config.annotation_config import AnnotationConfig
-from ..vendor.feature_tools import group_consecutive, get_atlas_data_from_file, get_atlas_data_from_mzml
+from ..vendor.feature_tools import group_consecutive, get_atlas_data_from_file, get_atlas_data_from_mzml, calculate_ms1_summary
 
 
 
@@ -43,7 +43,6 @@ class MS1Matcher:
         node_atlas['rt_peak'] = (self.config.min_rt + self.config.max_rt) / 2
         
         # Set m/z tolerances
-        node_atlas['mz_tolerance'] = self.config.mz_tol
         node_atlas['ppm_tolerance'] = self.config.ppm_tolerance
         node_atlas['extra_time'] = 0
         
@@ -87,10 +86,11 @@ class MS1Matcher:
                     continue
                 
                 # Calculate feature summaries
-                feature_data = (data[data['in_feature'] == True]
-                              .groupby('label')
-                              .apply(self._calculate_ms1_summary)
-                              .reset_index())
+                feature_data = calculate_ms1_summary(data)
+                # feature_data = (data[data['in_feature'] == True]
+                #               .groupby('label')
+                #               .apply(self._calculate_ms1_summary)
+                #               .reset_index())
                 feature_data['lcmsrun_observed'] = file
                 
                 # Filter by minimum data points
@@ -115,27 +115,27 @@ class MS1Matcher:
 
         return combined_data
     
-    def _calculate_ms1_summary(self, row: pd.Series) -> pd.Series:
-        """
-        Calculate summary properties for MS1 features.
+    # def _calculate_ms1_summary(self, row: pd.Series) -> pd.Series:
+    #     """
+    #     Calculate summary properties for MS1 features.
         
-        Args:
-            row: Grouped feature data
+    #     Args:
+    #         row: Grouped feature data
             
-        Returns:
-            pd.Series: Summary statistics
-        """
-        summary = {}
+    #     Returns:
+    #         pd.Series: Summary statistics
+    #     """
+    #     summary = {}
         
-        summary['num_datapoints'] = row['i'].count()
-        summary['peak_area'] = row['i'].sum()
+    #     summary['num_datapoints'] = row['i'].count()
+    #     summary['peak_area'] = row['i'].sum()
         
-        # Find peak apex
-        idx = row['i'].idxmax()
-        summary['peak_height'] = row.loc[idx, 'i']
-        summary['rt_peak'] = row.loc[idx, 'rt']
+    #     # Find peak apex
+    #     idx = row['i'].idxmax()
+    #     summary['peak_height'] = row.loc[idx, 'i']
+    #     summary['rt_peak'] = row.loc[idx, 'rt']
         
-        # Calculate mass centroid
-        summary['mz_centroid'] = (row['i'] * row['mz']).sum() / summary['peak_area']
+    #     # Calculate mass centroid
+    #     summary['mz_centroid'] = (row['i'] * row['mz']).sum() / summary['peak_area']
         
-        return pd.Series(summary)
+    #     return pd.Series(summary)
