@@ -1,0 +1,14 @@
+# Configuration to build ENVnet from a local CSV file list
+
+# --- Data Loading Settings ---
+# Specify 'local_csv' to override the default (likely 'google_sheet')
+file_metadata_source: 'local_csv'
+
+# Provide the absolute path to your CSV file
+file_metadata_path: '/global/homes/b/bpb/repos/envnet/scripts/build_files.csv'
+
+# --- Other Build Parameters (optional) ---
+# You can override any other build parameters here if needed.
+# For example:
+# min_cluster_size: 5
+# remblink_cutoff: 0.05
