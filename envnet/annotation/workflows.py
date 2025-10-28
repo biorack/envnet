@@ -278,10 +278,16 @@ def main():
                        help='m/z tolerance for matching')
     parser.add_argument('--ppm-tolerance', type=float, default=10.0,
                        help='ppm tolerance for matching')
+    parser.add_argument('--rt-min', type=int, default=1,
+                       help='minimum retention time for MS1 and MS2 processing')
+    parser.add_argument('--rt-max', type=int, default=9,
+                       help='maximum retention time for MS1 and MS2 processing')
     parser.add_argument('--min-library-match-score', type=float, default=0.5,
                        help='Minimum score for MS2 matches')
     parser.add_argument('--min-matches', type=int, default=3,
                        help='Minimum number of matching peaks for MS2')
+    parser.add_argument('--min-ms1-datapoints', type=int, default=5,
+                       help='Minimum number of MS1 data points for feature consideration')
     parser.add_argument('--chunk-size', type=int, default=1000,
                        help='Chunk size for MS2 processing')
     
@@ -295,11 +301,14 @@ def main():
         config = AnnotationConfig(**config_dict)
     else:
         config = AnnotationConfig(
+            min_rt=args.rt_min,
+            max_rt=args.rt_max,
             mz_tol=args.mz_tol, 
             ppm_tolerance=args.ppm_tolerance,
             min_library_match_score=args.min_library_match_score,
             min_matches=args.min_matches,
-            chunk_size=args.chunk_size
+            chunk_size=args.chunk_size,
+            min_ms1_datapoints=args.min_ms1_datapoints
         )
     
     # Determine file source
