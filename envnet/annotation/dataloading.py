@@ -254,7 +254,21 @@ class ExperimentalDataLoader:
         for file in tqdm(parquet_files, desc="Loading MS2 data", unit='file'):
             if not Path(file).is_file():
                 try:
-                    original_file = str(Path(file).with_suffix(f".{original_file_type}"))
+                    # try both mzml and mzML
+                    if original_file_type == 'mzml':
+                        mzml_file = str(Path(file).with_suffix(f".{original_file_type}"))
+                        mzml_file_alt = str(Path(file).with_suffix(".mzML"))
+
+                        if Path(mzml_file).is_file():
+                            original_file = mzml_file
+                        elif Path(mzml_file_alt).is_file():
+                            original_file = mzml_file_alt
+                        else:
+                            print(f'Original file not found for {file}')
+                            continue
+                    else:
+                        original_file = str(Path(file).with_suffix(f".{original_file_type}"))
+
                     config = DeconvolutionConfig()
                     deconv_tools = LCMSDeconvolutionTools(config)
                     data = deconv_tools.deconvolute_lcms_file(original_file)
