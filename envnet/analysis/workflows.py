@@ -292,7 +292,7 @@ def main():
                        help='Peak value to use for analysis')
     parser.add_argument('--require-ms2-support', action='store_true',
                        help='Require MS2 support for MS1 features')
-    parser.add_argument('--normalize-data', action='store_true', default=True,
+    parser.add_argument('--normalize-data', action='store_true',
                        help='Normalize data by total signal per sample')
     parser.add_argument('--max-pvalue', type=float, default=0.05,
                        help='Maximum p-value for significance')
