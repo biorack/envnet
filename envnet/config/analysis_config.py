@@ -12,7 +12,8 @@ class AnalysisConfig(BaseConfig):
     # Analysis-specific parameters
     min_ms1_datapoints: int = 5
     require_ms2_support: bool = False  # Whether to require MS2 support for MS1 features
-    
+    ms2_support_score_threshold: float = 0.7  # Minimum score to consider MS2 support
+    ms2_support_match_threshold: int = 3  # Minimum number of matches to consider MS2 support
     # Statistical analysis parameters
     max_pvalue: float = 0.05
     normalize_data: bool = True

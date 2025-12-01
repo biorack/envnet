@@ -38,8 +38,8 @@ class AnnotationDataLoader:
         data = {}
         
         ms1_cols = ['original_index','num_datapoints','rt_peak','peak_height','peak_area','lcmsrun_observed']
-        ms2_cols_deconvoluted = ['original_index_deconvoluted_match', 'score_deconvoluted_match', 'filename']
-        ms2_cols_original = ['original_index_original_match', 'score_original_match', 'filename']
+        ms2_cols_deconvoluted = ['original_index_deconvoluted_match', 'score_deconvoluted_match','matches_deconvoluted_match', 'filename']
+        ms2_cols_original = ['original_index_original_match', 'score_original_match', 'matches_original_match', 'filename']
 
         # Load MS1 data
         if ms1_file and Path(ms1_file).exists():
@@ -53,10 +53,28 @@ class AnnotationDataLoader:
         ms2_data = {}
         if ms2_deconv_file and Path(ms2_deconv_file).exists():
             ms2_data['deconvoluted'] = pd.read_parquet(ms2_deconv_file, columns=ms2_cols_deconvoluted)
+            # filter by score threshold and match threshold
+            print('Filtering MS2 deconvoluted data by score and match thresholds')
+            print(f"Initial MS2 deconvoluted data records: {len(ms2_data['deconvoluted'])}")
+            print(f"Score threshold: {self.config.ms2_support_score_threshold}, Match threshold: {self.config.ms2_support_match_threshold}")
+            ms2_data['deconvoluted'] = ms2_data['deconvoluted'][
+                (ms2_data['deconvoluted']['score_deconvoluted_match'] >= self.config.ms2_support_score_threshold) &
+                (ms2_data['deconvoluted']['matches_deconvoluted_match'] >= self.config.ms2_support_match_threshold)
+            ]
+            print(f"Filtered MS2 deconvoluted data records: {len(ms2_data['deconvoluted'])}")
             print(f"Loaded MS2 deconvoluted data: {len(ms2_data['deconvoluted'])} records")
             
         if ms2_original_file and Path(ms2_original_file).exists():
             ms2_data['original'] = pd.read_parquet(ms2_original_file, columns=ms2_cols_original)
+            # filter by score threshold and match threshold
+            print('Filtering MS2 original data by score and match thresholds')
+            print(f"Initial MS2 original data records: {len(ms2_data['original'])}")
+            print(f"Score threshold: {self.config.ms2_support_score_threshold}, Match threshold: {self.config.ms2_support_match_threshold}")
+            ms2_data['original'] = ms2_data['original'][
+                (ms2_data['original']['score_original_match'] >= self.config.ms2_support_score_threshold) &
+                (ms2_data['original']['matches_original_match'] >= self.config.ms2_support_match_threshold)
+            ]
+            print(f"Filtered MS2 original data records: {len(ms2_data['original'])}")
             print(f"Loaded MS2 original data: {len(ms2_data['original'])} records")
             
         data['ms2'] = ms2_data if ms2_data else None
@@ -172,6 +190,8 @@ class AnnotationDataLoader:
         # analysis_data.rename(columns={'lcmsrun_observed': 'filename'}, inplace=True)
         if 'lcmsrun_observed' in file_metadata.columns:
             file_metadata.drop(columns=['lcmsrun_observed'], inplace=True)
+        if 'filename' in analysis_data.columns:
+            analysis_data.drop(columns=['filename'], inplace=True)
         # Merge with file metadata
         if file_metadata is not None:
             analysis_data = pd.merge(
@@ -180,13 +200,28 @@ class AnnotationDataLoader:
                 right_on='filename',
                 how='left'
             )
+        # clean up columns and keep lcmsrun_observed only
+        if 'lcmsrun_observed' in analysis_data.columns:
+            drop_cols = ['parquet','h5','filename']
+            for col in drop_cols:
+                if col in analysis_data.columns:
+                    analysis_data.drop(columns=[col], inplace=True)
         return analysis_data
     
-    def _clean_file_names(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _clean_file_names(self, data: pd.DataFrame,
+                          filename_column: str='lcmsrun_observed') -> pd.DataFrame:
         """Clean file names for consistency."""
         data = data.copy()
-        data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace('.h5', '')
-        data['lcmsrun_observed'] = data['lcmsrun_observed'].str.replace('.mzML', '')
+        unique_lcmsruns = data[filename_column].unique()
+        # clean unique and merge back
+        clean_lcmsruns = [name.replace('.h5', '').replace('.mzML', '') for name in unique_lcmsruns]
+        clean_lcmsruns = [name.replace('.parquet','') for name in clean_lcmsruns]
+        # if original file is deconvoluted parquet, remove _deconvoluted from name
+        # only remove _deconvoluted suffix at the end
+        clean_lcmsruns = [name[:-13] if name.endswith('_deconvoluted') else name for name in clean_lcmsruns]
+        lcmsrun_mapping = dict(zip(unique_lcmsruns, clean_lcmsruns))
+        data[filename_column] = data[filename_column].map(lcmsrun_mapping)
+        
         return data
     
     def _filter_by_ms2_support(self, ms1_data: pd.DataFrame, 
@@ -221,9 +256,7 @@ class AnnotationDataLoader:
         all_matches = pd.concat(matches_list, ignore_index=True)
         all_matches.drop_duplicates(inplace=True)
         all_matches['original_index'] = all_matches['original_index'].astype(int)
-        
-        all_matches['filename'] = all_matches['filename'].str.replace('.h5', '')
-        all_matches['filename'] = all_matches['filename'].str.replace('.mzml', '')
+        all_matches = self._clean_file_names(all_matches, filename_column='filename')
 
         # Filter MS1 data
         original_count = len(ms1_data)
@@ -233,5 +266,6 @@ class AnnotationDataLoader:
             right_on=['original_index', 'filename'],
             how='inner'
         )
+
         print(f"MS2 filtering: {original_count} -> {len(filtered_data)} features")
         return filtered_data
