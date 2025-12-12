@@ -235,13 +235,16 @@ class ExperimentalDataLoader:
 
         input_col = ext.replace(".", "").lower()
         df = pd.DataFrame({input_col: file_list})
-        df['original_file_type'] = ext.replace(".", "")
-        df['lcmsrun_observed'] = df[input_col].apply(lambda x: Path(x).stem)
-
-        df['parquet'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.parquet")
-        df['h5'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.h5")
-        df['mzml'] = df['lcmsrun_observed'].apply(lambda stem: f"{stem}.mzML")
-        return df[['original_file_type', 'lcmsrun_observed', 'parquet', 'h5', 'mzml']]
+        df['original_file_type'] = input_col
+        df['lcmsrun_observed'] = df[input_col].apply(lambda x: Path(x).with_suffix(''))
+    
+        df['mzml'] = df['lcmsrun_observed'].apply(lambda x: Path(x).with_suffix('.mzml'))
+        df['parquet'] = df['lcmsrun_observed'].apply(lambda f: Path(f).with_suffix(".parquet"))
+        df['h5'] = df['lcmsrun_observed'].apply(lambda f: Path(f).with_suffix(".h5"))
+        cols = ['original_file_type', 'lcmsrun_observed', 'parquet', 'h5', 'mzml']
+        for c in cols:
+            df[c] = df[c].astype(str)
+        return df[cols]
     
     def _load_from_csv(self, csv_file: str) -> pd.DataFrame:
         """Load file metadata from CSV file."""
