@@ -1,0 +1,116 @@
+<svg width="650" height="180" viewBox="0 0 530 130" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .edge { 
+        stroke: #d5dde2; 
+        stroke-width: 3.5; 
+        stroke-linecap: round; 
+      }
+      
+      /* Styles for the custom hand-drawn Dot Font */
+      .font-line-green {
+        stroke: #1e9641;
+        stroke-width: 11;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+      .font-line-blue {
+        stroke: #0072b8;
+        stroke-width: 11;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+      
+      .sub-text { 
+        font-family: Arial, Helvetica, sans-serif; 
+        font-weight: bold; 
+        font-size: 15px;
+        fill: #8898a3; 
+      }
+    </style>
+  </defs>
+
+  <!-- Master Group translating the entire logo into the center of the ViewBox -->
+  <g transform="translate(-5, -15)">
+    
+    <!-- ==========================================
+         GRAPHIC: STYLE 20 (Center Hub Topology)
+         ========================================== -->
+    <g id="network-graphic">
+      <!-- Hub connects to all 11 other nodes. Hub is X=68, Y=58 -->
+      <line x1="68" y1="58" x2="136" y2="32" class="edge" />
+      <line x1="68" y1="58" x2="132" y2="34" class="edge" />
+      <line x1="68" y1="58" x2="122" y2="40" class="edge" />
+      <line x1="68" y1="58" x2="118" y2="54" class="edge" />
+      <line x1="68" y1="58" x2="90" y2="60" class="edge" />
+      <line x1="68" y1="58" x2="46" y2="56" class="edge" />
+      <line x1="68" y1="58" x2="34" y2="55" class="edge" />
+      <line x1="68" y1="58" x2="58" y2="92" class="edge" />
+      <line x1="68" y1="58" x2="86" y2="124" class="edge" />
+      <line x1="68" y1="58" x2="102" y2="102" class="edge" />
+      <line x1="68" y1="58" x2="42" y2="98" class="edge" />
+
+      <!-- Outer Nodes -->
+      <circle cx="136" cy="32" r="5" fill="#1e9641" /> 
+      <circle cx="132" cy="34" r="4" fill="#0072b8" /> 
+      <circle cx="122" cy="40" r="4" fill="#8898a3" /> 
+      <circle cx="118" cy="54" r="7" fill="#0072b8" /> 
+      <circle cx="90" cy="60" r="5" fill="#8898a3" /> 
+      <circle cx="46" cy="56" r="6" fill="#0072b8" /> 
+      <circle cx="34" cy="55" r="8" fill="#1e9641" /> 
+      <circle cx="58" cy="92" r="6" fill="#0072b8" /> 
+      <circle cx="86" cy="124" r="7" fill="#1e9641" /> 
+      <circle cx="102" cy="102" r="5" fill="#8898a3" /> 
+      <circle cx="42" cy="98" r="4" fill="#0072b8" /> 
+      
+      <!-- Center Hub -->
+      <circle cx="68" cy="58" r="8" fill="#1e9641" /> 
+    </g>
+
+    <!-- ==========================================
+         TYPOGRAPHY: CUSTOM "DOTS FONT"
+         ========================================== -->
+    <g id="custom-dots-font">
+      
+      <!-- Letter 'E' -->
+      <!-- Middle crossbar replaced by a dot -->
+      <path class="font-line-green" d="M 175 32 L 175 100 M 175 32 L 205 32 M 175 100 L 205 100" />
+      <circle cx="195" cy="66" r="6" fill="#0072b8" />
+
+      <!-- Letter 'N' -->
+      <!-- Top-right corner replaced by a dot -->
+      <path class="font-line-green" d="M 230 32 L 230 100 M 230 32 L 270 100 M 270 55 L 270 100" />
+      <circle cx="270" cy="32" r="6" fill="#0072b8" />
+
+      <!-- Letter 'V' -->
+      <!-- Bottom apex replaced by a dot -->
+      <path class="font-line-green" d="M 295 32 L 308 73 M 335 32 L 322 73" />
+      <circle cx="315" cy="100" r="6" fill="#0072b8" />
+
+      <!-- Letter 'n' (lowercase) -->
+      <!-- Bottom-right stem replaced by a dot -->
+      <path class="font-line-blue" d="M 365 60 L 365 100 M 365 60 L 400 60 L 400 80" />
+      <circle cx="400" cy="100" r="6" fill="#1e9641" />
+
+      <!-- Letter 'e' (lowercase) -->
+      <!-- Bottom-right tail end replaced by a dot -->
+      <path class="font-line-blue" d="M 430 80 L 460 80 L 460 60 L 430 60 L 430 100 L 445 100" />
+      <circle cx="460" cy="100" r="6" fill="#1e9641" />
+
+      <!-- Letter 't' (lowercase) -->
+      <!-- Bottom stem replaced by a dot -->
+      <path class="font-line-blue" d="M 500 35 L 500 80 M 485 60 L 515 60" />
+      <circle cx="500" cy="100" r="6" fill="#1e9641" />
+      
+    </g>
+
+    <!-- ==========================================
+         SUBTEXT
+         ========================================== -->
+    <!-- Positioned below the new custom font, aligned edges -->
+    <text x="169" y="132" class="sub-text" textLength="357" lengthAdjust="spacing">DISSOLVED ORGANIC MATTER NETWORKING</text>
+
+  </g>
+</svg>
