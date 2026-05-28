@@ -198,7 +198,7 @@ def aggregate_fold_changes(fold_changes: pd.Series) -> Dict:
     
     return {
         'mean': fold_changes.mean(),
-        'stderror': fold_changes.std(),
+        'stderror': fold_changes.sem(),
         'count': fold_changes.count(),
         'positive_count': positive_count,
         'negative_count': negative_count

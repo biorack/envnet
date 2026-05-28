@@ -179,11 +179,12 @@ class EnrichmentAnalyzer:
         
         # Create horizontal bar plot
         y_pos = range(len(results))
-        bars = ax.barh(y_pos, results['mean'], xerr=results['stderror'])
+        bars = ax.barh(y_pos, results['mean'], xerr=results['stderror'], capsize=4)
         
         # Formatting
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(results[class_column])
+        formatted_labels = [f"{name} (#nodes={count})" for name, count in zip(results[class_column], results['count'])]
+        ax.set_yticklabels(formatted_labels)
         ax.set_xlabel('Log2 Fold Change')
         ax.set_title(f'Compound Class Enrichment: {class_column}')
         ax.grid(True, alpha=0.3)
